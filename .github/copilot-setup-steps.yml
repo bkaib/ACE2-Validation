@@ -1,0 +1,55 @@
+# Project setup steps for SYNCDSTRMDMG
+# Keep this file concise — developers can follow these steps to reproduce
+
+prerequisites:
+  - description: "Conda (recommended) or system Python 3.10+"
+  - description: "git, make, sbatch (for HPC), and zarr/xarray-friendly tools"
+
+environment:
+  - name: Create conda environment (recommended)
+    commands:
+      - conda env create -f environment.yml || conda create -n syncdstrdmg python=3.10 -y
+      - conda activate syncdstrdmg
+  - name: Install dependencies
+    note: Prefer `environment.yml` for exact conda installs; use `environment-dev.yml` for developer tools.
+    commands:
+      - conda env update -f environment.yml --prune
+      - # For development tools: conda env update -f environment-dev.yml --prune
+      - # If you prefer pip: pip install -r requirements.txt
+
+repo-structure-notes:
+  - description: "Use `config/paths.py` for all dataset paths and avoid hardcoding paths."
+  - description: "Large data are provided via symlinks. Do not copy large NetCDF/Zarr files into the repo."
+
+data-setup:
+  - name: Local data symlinks
+    commands:
+      - mkdir -p data/raw
+      - ln -s /path/to/ERA5 data/raw/ERA5
+      - ln -s /path/to/NCEI data/raw/NCEI
+    note: "Adjust absolute paths above to your storage. On HPC use project storage mounts."
+  - name: Use `config/paths.py`
+    note: "Confirm `config/paths.py` points at the symlinked locations (ERA5_RAW, NCEI_RAW, etc.)."
+
+hpc-notes:
+  - description: "This project is used on DKRZ Levante HPC. Use `jobs/` scripts as templates."
+  - example:
+      - sbatch jobs/compute_era5_quantiles.sh
+      - sbatch job.sh  # adapt job.sh for your queue and resource requests
+
+notebooks:
+  - description: "Open notebooks with Jupyter Lab and select the `syncdstrdmg` kernel after creating the environment."
+  - commands:
+      - pip install ipykernel
+      - python -m ipykernel install --user --name syncdstrdmg --display-name "syncdstrdmg"
+      - jupyter lab
+
+contributing:
+  - description: "Document any new data sources or preprocessing steps in `milestones/` and update `config/paths.py`."
+  - description: "Open a PR for code changes; include an entry in CHANGELOG if appropriate."
+
+troubleshooting:
+  - symptom: "Missing data files"
+    resolution: "Ensure symlinks in `data/raw` point to accessible storage and `config/paths.py` matches those locations."
+  - symptom: "Memory / OOM when opening large NetCDF"
+    resolution: "Use xarray with dask, and prefer Zarr backends; open with chunking."

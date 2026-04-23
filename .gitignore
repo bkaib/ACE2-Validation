@@ -1,0 +1,52 @@
+# --- Python Basics ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.env
+
+# --- Project Specific Data (IMPORTANT) ---
+# We ignore the entire data/ directory contents except for the structure
+data/raw/*
+data/processed/*
+data/tmp/*
+
+# Keep the folders but ignore the files
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/tmp/.gitkeep
+
+# --- Large Files ---
+*.nc
+*.nc4
+*.grib
+*.grib2
+*.csv
+*.mat
+*.h5
+*.hdf
+*.zarr
+
+# Workspace files
+
+*.code-workspace
+
+# --- Models and Assets ---
+# Ignore the content of symlinked folders
+models/*
+libraries/*
+tutorials/*
+!models/.gitkeep
+!libraries/.gitkeep
+!tutorials/.gitkeep
+
+# --- Logs and System ---
+logs/*
+logs/*.out
+logs/*.err
+logs/*.log
+.DS_Store
+.ipynb_checkpoints/
+
