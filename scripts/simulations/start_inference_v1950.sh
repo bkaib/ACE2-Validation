@@ -1,0 +1,20 @@
+#!/bin/bash
+#BATCH --job-name=kaijob
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --account=gg0304
+#SBATCH --ntasks=1
+#SBATCH --time=08:00:00
+#SBATCH --output=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v1950/kaijob.o%j    # File name for standard output
+#SBATCH --error=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v1950/kai_job.e%j
+#
+#
+
+workingdirectory=/work/gg0304/g260230/model_assets/ACE2-ERA5
+ioptselectvariables=1
+
+cd  $workingdirectory
+
+
+/work/gg0304/g260230/conda/envs/fme/bin/python -m fme.ace.inference /work/gg0304/g260230/projects/ACE2-Validation/scripts/simulations/inference_config_v1950.yaml
+    

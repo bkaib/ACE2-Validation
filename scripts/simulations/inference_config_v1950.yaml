@@ -1,0 +1,38 @@
+checkpoint_path: /work/gg0304/g260230/model_assets/ACE2-ERA5/ace2_era5_ckpt.tar
+data_writer:
+  names:
+  - TMP2m
+  - PRATEsfc
+  - UGRD10m
+  - VGRD10m
+  save_monthly_files: false
+  save_prediction_files: true
+experiment_dir: /scratch/g/g260230/ACE2-ERA5/output_directory/2000v1950
+forcing_loader:
+  dataset:
+    data_path: /work/gg0304/g260230/model_assets/ACE2-ERA5/FORCING/original
+    file_pattern: regex:forcing_200[0-9].nc|forcing_201[0-1].nc
+  num_data_workers: 4
+forward_steps_in_memory: 40
+initial_condition:
+  path: /work/gg0304/g260230/model_assets/ACE2-ERA5/INITIAL/ACE2-Validation/ic_2000v1950.nc
+  start_indices:
+    times:
+    - '2000-01-01T00:00:00'
+    - '2000-02-01T00:00:00'
+    - '2000-03-01T00:00:00'
+    - '2000-04-01T00:00:00'
+    - '2000-05-01T00:00:00'
+    - '2000-06-01T00:00:00'
+    - '2000-07-01T00:00:00'
+    - '2000-08-01T00:00:00'
+    - '2000-09-01T00:00:00'
+    - '2000-10-01T00:00:00'
+    - '2000-11-01T00:00:00'
+    - '2000-12-01T00:00:00'
+logging:
+  log_to_file: true
+  log_to_screen: true
+  log_to_wandb: false
+  project: ace
+n_forward_steps: 16072
