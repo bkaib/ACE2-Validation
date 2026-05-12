@@ -14,7 +14,9 @@ ACE2 was not trained on the 2001–2010 period, making it the appropriate valida
 ## Steps
 
 - [x] Set up ACE2 model environment and confirm software/version
-- [ ] Check what output variables of ACE2 we need to compute the ETCCDIs
+- [x] Check what output variables of ACE2 we need to compute the ETCCDIs
+- [ ] Get ACE2 running: fme not found
+- [ ] Check Ensemble output of the test run. 
 - [ ] Define ensemble initialisation strategy (e.g. perturbed ERA5 initial conditions for 2001-01-01)
 - [ ] Write and test job scripts for a single ensemble member
 - [ ] Scale to ≥ 50 members using HPC job arrays

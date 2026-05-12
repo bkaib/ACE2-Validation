@@ -1,20 +1,29 @@
+#---
 # Purpose: keep track of all paths within this project and use it for
 # relative linking in code.
+#---
 
+# General project paths
 PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation/"
+WORK_DATA = "/work/gg0304/g260230/data/"
+SCRATCH = "/scratch/g/g260230/" # For intermediate files and outputs
+
 
 # Raw data
-ERA5_RAW = PROJECT_ROOT + "data/raw/ERA5/"
-ACE2_RAW = PROJECT_ROOT + "data/raw/ACE2/"
+ERA5_RAW = PROJECT_ROOT + "raw/ERA5/"
+ACE2_RAW = PROJECT_ROOT + "raw/ACE2/"
 
-# CMIP6 data paths
+# ACE2-ERA5 Model
+# Use `sbatch start_inference' to run the ACE2-ERA5 model.
+# The `inference_config.yaml' file contains the configuration for the model run, 
+# including the ICs, forcing, and output paths. Make sure to update the paths in that file as well.
+# The model here is symlinked. The original mode is located at /work/gg0304/g260230/model_assets/ACE2-ERA5/. 
+# This is done to keep the project organized and to avoid modifying the original model files.
 
-## Historical data (1850-2014)
-MPI_ESM_WINDSPEED = PROJECT_ROOT + "data/raw/MPI/gn/v20190710/" # "/pool/data/CMIP6/data/CMIP/MPI-M/MPI-ESM1-2-HR/historical/r1i1p1f1/day/sfcWind/"
-EC_EARTH3_WINDSPEED = PROJECT_ROOT + "data/raw/EC-Earth3/gr/v20200310/" # "/pool/data/CMIP6/data/CMIP/EC-Earth-Consortium/EC-Earth3/historical/r1i1p1f1/day/sfcWind/"
+ACE2_MODEL = PROJECT_ROOT + "models/ACE2-ERA5/" # symlink
+ACE2_FORCING = PROJECT_ROOT + "models/ACE2-ERA5/FORCING/"
+ACE2_INITIAL_CONDITIONS = PROJECT_ROOT + "models/ACE2-ERA5/INITIAL/" # Original and perturbed ICs in subfolders.
 
-# Scratch space for intermediate files and outputs
-SCRATCH = "/scratch/g/g260230/"
-
-
+# ACE2-Output
+ACE2_SIMULATION_OUTPUT = SCRATCH + "ACE2-ERA5/output_directory/"
 
