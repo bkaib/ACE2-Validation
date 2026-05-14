@@ -8,12 +8,33 @@ PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation/"
 WORK_DATA = "/work/gg0304/g260230/data/"
 SCRATCH = "/scratch/g/g260230/" # For intermediate files and outputs
 
+#---
+# DATA
+#---
 
 # Raw data
-ERA5_RAW = PROJECT_ROOT + "raw/ERA5/"
-ACE2_RAW = PROJECT_ROOT + "raw/ACE2/"
+ERA5_RAW = PROJECT_ROOT + "data/raw/ERA5/"
+ACE2_RAW = PROJECT_ROOT + "data/raw/ACE2-ERA5/output_directory/"
+
+# ERA5
+ERA5_PARAMS = {
+    49 : "10fg", # 10m wind gust
+    131 : "u", # zonal wind component
+    134 : "sp", # surface pressure
+    165 : "10u", # 10m zonal wind speed
+    166 : "10v", # 10m meridional wind speed
+    167 : "2t", # 2m temperature, required for ETCCDI computation
+    207 : "10si", # 10m wind speed, required for ETCCDI computation
+    228 : "tp", # total precipitation, required for ETCCDI computation
+    235 : "skt", # skin temperature
+}
+
+#---
+# MODELS
+#---
 
 # ACE2-ERA5 Model
+#---
 # Use `sbatch start_inference' to run the ACE2-ERA5 model.
 # The `inference_config.yaml' file contains the configuration for the model run, 
 # including the ICs, forcing, and output paths. Make sure to update the paths in that file as well.
@@ -24,6 +45,7 @@ ACE2_MODEL = PROJECT_ROOT + "models/ACE2-ERA5/" # symlink
 ACE2_FORCING = PROJECT_ROOT + "models/ACE2-ERA5/FORCING/"
 ACE2_INITIAL_CONDITIONS = PROJECT_ROOT + "models/ACE2-ERA5/INITIAL/" # Original and perturbed ICs in subfolders.
 
-# ACE2-Output
+## ACE2-Output
 ACE2_SIMULATION_OUTPUT = SCRATCH + "ACE2-ERA5/output_directory/"
+
 

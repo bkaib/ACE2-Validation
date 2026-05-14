@@ -25,9 +25,9 @@ ETCCDI indices are the standard framework for characterising the frequency, inte
 ## Steps
 
 - [ ] Choose / implement index computation library (e.g. `xclim`, `climdex`, or custom)
-- [ ] Define percentile baselines (ERA5 1981–2010 climatological period for TX90p, TN10p, FG95p)
+- [ ] Define percentile baselines (ERA5 1981–2010 (30y) climatological period for TX90p, TN10p, FG95p)
 - [ ] Compute all indices from processed ERA5 (`data/processed/ERA5/`)
-- [ ] Compute all indices for each ACE2 ensemble member (`data/processed/ACE2/`)
+- [ ] Compute all indices for each ACE2 ensemble member based on ERA5 thresholds (`data/processed/ACE2/`)
 - [ ] Compute ACE2 ensemble mean and spread (std, 5th–95th percentile range) across members
 - [ ] Save annual index fields to `data/processed/indices/ERA5/` and `data/processed/indices/ACE2/`
 - [ ] Unit and sanity checks (e.g. TXx > TNn everywhere, R10 ≥ 0)

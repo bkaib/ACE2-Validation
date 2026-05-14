@@ -5,8 +5,8 @@
 #SBATCH --account=gg0304
 #SBATCH --ntasks=1
 #SBATCH --time=08:00:00
-#SBATCH --output=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v1940/kaijob.o%j    # File name for standard output
-#SBATCH --error=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v1940/kai_job.e%j
+#SBATCH --output=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v2020/kaijob.o%j    # File name for standard output
+#SBATCH --error=/scratch/g/g260230/ACE2-ERA5/output_directory/2000v2020/kai_job.e%j
 #
 #
 

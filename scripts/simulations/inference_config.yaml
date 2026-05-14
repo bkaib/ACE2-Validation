@@ -7,7 +7,7 @@ data_writer:
   - VGRD10m
   save_monthly_files: false
   save_prediction_files: true
-experiment_dir: /scratch/g/g260230/ACE2-ERA5/output_directory/2000v1940
+experiment_dir: /scratch/g/g260230/ACE2-ERA5/output_directory/2000v2020
 forcing_loader:
   dataset:
     data_path: /work/gg0304/g260230/model_assets/ACE2-ERA5/FORCING/original
@@ -15,7 +15,7 @@ forcing_loader:
   num_data_workers: 4
 forward_steps_in_memory: 40
 initial_condition:
-  path: /work/gg0304/g260230/model_assets/ACE2-ERA5/INITIAL/ACE2-Validation/ic_2000v1940.nc
+  path: /work/gg0304/g260230/model_assets/ACE2-ERA5/INITIAL/ACE2-Validation/ic_2000v2020.nc
   start_indices:
     times:
     - '2000-01-01T00:00:00'

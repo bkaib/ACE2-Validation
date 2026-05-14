@@ -1,7 +1,7 @@
 # Milestone 1: Generate ACE2 Simulations (2001–2010)
 
 > **Milestone:** [01-generate-ace2-simulations.md](01-generate-ace2-simulations.md)  
-> **Status:** 🔴 Not Started
+> **Status:** In Progress
 > **Started:** --
 > **Completed:** —
 

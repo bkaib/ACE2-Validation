@@ -43,12 +43,18 @@ Indendation indicates sub-tasks. Use the following format for each task:
     - [x] **[HIGH]** Generate Initial conditions for the year 2000 from the ICs in 1940, 1950, 1979, 2001 and 2020 to later on start the ensembles. Save those in ACE2_INITIAL_CONDITIONS/ACE2-Validation — milestone: `milestone1` — added: 2024-06-01
     - [x] **[HIGH]** Adjust the config file to start ACE2. Let it run 12 ensembles for each simulation, starting in Jan 2000 up to Dec 2000. Each ensemble member should end in Dec 2010— milestone: `milestone1` — added: 2024-06-01
     - [x] **[HIGH]** For each set of ensembles (e.g. initialized in 2000 with ICs of 1940, 1950, 1979, 2020) save the output files on the corresponding scratch folder — milestone: `milestone1` — added: 2024-06-01
-    - [ ] **[HIGH]** Run ensemble with IC from 1950 — milestone: `milestone1` — added: 2024-06-01
-    - [ ] **[HIGH]** Run ensemble with IC from 1979 — milestone: `milestone1` — added: 2024-06-01
-    - [ ] **[HIGH]** Run ensemble with IC from 2020 — milestone: `milestone1` — added: 2024-06-01
-- [ ] **[HIGH]** Extract the period 2001-2010 from each simulation and save those on work? — milestone: `milestone1` — added: 2024-06-01
+    - [x] **[HIGH]** Run ensemble with IC from 1950 — milestone: `milestone1` — added: 2024-06-01
+    - [x] **[HIGH]** Run ensemble with IC from 1979 — milestone: `milestone1` — added: 2024-06-01
+    - [ ] **[HIGH]** Run ensemble with IC from 2020 (its running) — milestone: `milestone1` — added: 2024-06-01
+- [ ] **[HIGH]** Extract the period 2001-2010 from each simulation — milestone: `milestone1` — added: 2024-06-01
+- [ ] **[HIGH]** Validate the simulation output based on the 1940 version — milestone: `milestone1` — added: 2024-06-01
+- [ ] **[HIGH]** Collect relevant data of ERA5 to compute ETCCDIs #phd ⏫  — milestone: `milestone1` — added: 2024-06-01
 
     
 ## Backlog
+
+- [ ] **[MED]** Compute ETCCDIs of ERA5 — milestone: `milestone03` — added: 2024-06-01
+- [ ] **[MED]** Compute ETCCDIs of ACE2 simulations — milestone: `milestone03` — added: 2024-06-01
+- [ ] **[MED]** Validate computed ETCCDIs — milestone: `milestone03` — added: 2024-06-01
 
 ## Completed
