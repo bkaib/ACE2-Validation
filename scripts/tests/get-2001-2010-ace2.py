@@ -67,7 +67,7 @@ def get_analysis_period(experiment_id, start_date="2001-01-01", end_date="2010-1
 		output_file = os.path.join(output_dir, f"ensemble_{n_ensemble}.nc")
 
 		logger.info(f"Saving sliced period 2001-2010 for ensemble member {n_ensemble} to {output_file}...")
-		# selected_period.to_netcdf(output_file)
+		selected_period.to_netcdf(output_file)
 		logger.info(f"{output_file} saved successfully.")
 
 if __name__ == "__main__":
