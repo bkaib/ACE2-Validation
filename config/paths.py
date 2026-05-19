@@ -15,7 +15,7 @@ SCRATCH = "/scratch/g/g260230/" # For intermediate files and outputs
 # Raw data
 ERA5_RAW = PROJECT_ROOT + "data/raw/ERA5/"
 ACE2_RAW = PROJECT_ROOT + "data/raw/ACE2-ERA5/output_directory/"
-
+ACE2_ENSEMBLES = PROJECT_ROOT + "data/raw/ace2-ensembles/"
 # ERA5
 ERA5_PARAMS = {
     49 : "10fg", # 10m wind gust
@@ -48,4 +48,7 @@ ACE2_INITIAL_CONDITIONS = PROJECT_ROOT + "models/ACE2-ERA5/INITIAL/" # Original 
 ## ACE2-Output
 ACE2_SIMULATION_OUTPUT = SCRATCH + "ACE2-ERA5/output_directory/"
 
-
+#---
+# FIGURES
+#---
+FIGURES = PROJECT_ROOT + "results/figures/"

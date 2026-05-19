@@ -62,7 +62,7 @@ def get_analysis_period(experiment_id, start_date="2001-01-01", end_date="2010-1
 		selected_period.attrs["ensemble_member"] = n_ensemble
 
 		# Save the current ensemble member to netcdf
-		output_dir = os.path.join(paths.ACE2_RAW, experiment_id)
+		output_dir = os.path.join(paths.ACE2_ENSEMBLES, experiment_id)
 		os.makedirs(output_dir, exist_ok=True)
 		output_file = os.path.join(output_dir, f"ensemble_{n_ensemble}.nc")
 
@@ -71,7 +71,6 @@ def get_analysis_period(experiment_id, start_date="2001-01-01", end_date="2010-1
 		logger.info(f"{output_file} saved successfully.")
 
 if __name__ == "__main__":
-	experiment_id = "2000v1940"
-	get_analysis_period(experiment_id)
-
+	for experiment_id in ["2000v1950", "2000v1979", "2000v2020"]:
+		get_analysis_period(experiment_id, start_date="2001-01-01", end_date="2010-12-31")
 
