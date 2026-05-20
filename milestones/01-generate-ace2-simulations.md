@@ -15,17 +15,19 @@ ACE2 was not trained on the 2001–2010 period, making it the appropriate valida
 
 - [x] Set up ACE2 model environment and confirm software/version
 - [x] Check what output variables of ACE2 we need to compute the ETCCDIs
-- [ ] Get ACE2 running: fme not found
-- [ ] Check Ensemble output of the test run. 
-- [ ] Define ensemble initialisation strategy (e.g. perturbed ERA5 initial conditions for 2001-01-01)
-- [ ] Write and test job scripts for a single ensemble member
-- [ ] Scale to ≥ 50 members using HPC job arrays
-- [ ] Monitor runs; resubmit any failed members
-- [ ] Collect and organise raw output (one file per member, consistent naming convention)
+- [x] Get ACE2 running: fme not found
+- [x] Check Ensemble output of the test run. 
+- [x] Define ensemble initialisation strategy (e.g. perturbed ERA5 initial conditions for 2001-01-01)
+- [x] Write and test job scripts for a single ensemble member
+- [x] Scale to ≥ 50 members using HPC job arrays
+- [x] Monitor runs; resubmit any failed members
+- [x] Collect and organise raw output (one file per member, consistent naming convention)
+- [ ] Compute 10m Windspeed
 - [ ] Basic sanity check: verify output completeness and plausibility (global mean T2m, total pr)
 
 ## Outputs
-- `data/raw/ACE2/` — raw simulation output, one file per member
+- `data/raw/ACE2-ERA5/` — raw simulation output, one file per member
+- `data/raw/ace2-ensembles/` — organised ensemble of each simulation version.
 - Job scripts in `jobs/`
 - Run log in `logs/`
 
