@@ -1,33 +1,75 @@
 # %% Modules
+import sys
 import xarray as xr
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
-# %% Validate if the preprocessing of ICs did work.
-yyyy = 2020
-ic_orig = xr.open_dataset(f"models/ACE2-ERA5/INITIAL/original/ic_{yyyy}.nc")
-ic_copied = xr.open_dataset(f"models/ACE2-ERA5/INITIAL/ACE2-Validation/ic_2000v{yyyy}.nc")
 
-# Check if they are the same
-print("Original IC:")
-print(ic_orig)    
-print("\nCopied IC:")
-print(ic_copied)
-
-# Compare data variables (excluding time coordinate)
-print("\n--- Comparison ---")
-for var in ic_orig.data_vars:
-    if var in ic_copied.data_vars:
-        orig_data = ic_orig[var].values
-        copied_data = ic_copied[var].values
-        is_equal = (orig_data == copied_data).all()
-        print(f"{var}: {'✓ Match' if is_equal else '✗ Mismatch'}")
-    else:
-        print(f"{var}: ✗ Missing in copied dataset")
-
-for var in ic_copied.data_vars:
-    if var not in ic_orig.data_vars:
-        print(f"{var}: ✗ Extra in copied dataset")
+sys.path.append("/home/g/g260230/")
+from own_libraries import visualisation as vis
 
 # %% Load ensemble data
 
-ensemble = xr.open_dataset("/scratch/g/g260230/ACE2-ERA5/output_directory/2000v1940/autoregressive_predictions.nc")
-ensemble.valid_time.values
+print("Loading ensemble data...")
+ensemble = xr.open_dataset("data/raw/ace2-ensembles/2000v1940/ensemble_0.nc")
+# print("Computing temporal mean...")
+# data = ensemble["10si"].mean(dim="time").compute()
+
+# print("Plot temporal mean of 10m wind speed...")
+# fig, ax = vis.world_map(
+#     data=data,
+#     title="Mean 10m Wind Speed (2001-2010) - Ensemble 0",
+#     cbar_label="m/s",
+#     cmap="viridis",
+# )
+
+
+# fig.tight_layout()
+# output_path = "results/figures/tmp/mean_10m_wind_speed_ensemble_0.png"
+# fig.savefig(output_path, dpi=300)
+# print(f"Saved figure to {output_path}")
+
+# Compute Monthly Mean of 10m Wind Speed
+print("Computing monthly mean of 10m wind speed...")
+monthly_mean = ensemble["10si"].groupby("time.month").mean(dim="time").compute()
+
+## Plot monthly mean of 10m wind speed for January
+# print("Plotting monthly mean of 10m wind speed for January...")
+# fig, ax = vis.world_map(
+#     data=monthly_mean.sel(month=1),
+#     title="Monthly Mean 10m Wind Speed (January) - Ensemble 0",
+#     cbar_label="m/s",
+#     cmap="viridis",
+# )   
+
+# ## Save figure to figures/tmp
+# fig.tight_layout()
+# output_path = "results/figures/tmp/monthly_mean_10m_wind_speed_january_ensemble_0.png"
+# fig.savefig(output_path, dpi=300)
+# print(f"Saved figure to {output_path}")
+
+## Create a plot with all months in one figure
+print("Plotting monthly mean of 10m wind speed for all months...")
+fig, axes = plt.subplots(3, 4, figsize=(15, 12), subplot_kw={'projection': ccrs.EqualEarth()})
+axes = axes.flatten()
+im = None
+for month in range(1, 13):
+    ax = axes[month-1]
+    monthly_data = monthly_mean.sel(month=month)
+    im = ax.contourf(monthly_data.lon, monthly_data.lat, monthly_data, cmap="viridis", transform=ccrs.PlateCarree())
+
+    ## Add coastlines and gridlines
+    ax.coastlines()
+    ax.gridlines(draw_labels=True)  
+    ax.set_title(f"Month: {month}")
+
+## Add shared colorbar
+cbar_ax = fig.add_axes([0.2, 0.08, 0.6, 0.02])
+plt.colorbar(im, cax=cbar_ax, label="m/s", orientation="horizontal")
+fig.suptitle("Monthly Mean 10m Wind Speed (2001-2010) | Ensemble 0 v1940", fontsize=16)
+
+## Save figure to figures/tmp
+fig.tight_layout()
+output_path = "results/figures/tmp/monthly_mean_10m_wind_speed_all_months_ensemble_0.png"
+fig.savefig(output_path, dpi=300)
+print(f"Saved figure to {output_path}")

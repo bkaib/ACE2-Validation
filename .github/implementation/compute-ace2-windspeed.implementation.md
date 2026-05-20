@@ -93,7 +93,7 @@ python3 -c "import sys; sys.path.append('libraries/own_libraries'); import xarra
 
 ### 2.1 — Create compute_windspeed_ensembles.py script
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 **Create file**: `scripts/preprocessing/compute_windspeed_ensembles.py`
 
