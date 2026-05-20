@@ -511,7 +511,9 @@ Execute the commands above.
 
 ### 4.1 — Count and process all files
 
-- [ ] **Implementation**
+- [x] **Implementation**
+
+Status: Completed — all ensemble files processed; see `logs/windspeed_processing.log` and `logs/compute_windspeed_ensembles.log` for details.
 
 Count total files, then process all ensemble files across all simulation versions. **Note**: This processes each file with Dask chunking; total time depends on disk speed but typically 2-5 minutes per file.
 
@@ -537,7 +539,7 @@ DASK_CHUNKS="time=50,lat=45,lon=90" python3 scripts/preprocessing/compute_windsp
 
 ### 4.2 — Verify all files processed successfully
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 After processing completes, verify that all files contain the wind speed variable.
 
@@ -600,7 +602,7 @@ grep "Successfully processed\|Error processing" logs/compute_windspeed_ensembles
 
 ### Step 4 — Verification
 
-- [ ] **Run verification**
+- [x] **Run verification**
 
 Execute the commands above.
 
