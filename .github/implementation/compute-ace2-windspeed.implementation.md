@@ -21,7 +21,7 @@
 
 ### 1.1 — Add compute_windspeed function to xarray_tools.py
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 **Edit file**: `libraries/own_libraries/xarray_tools.py`
 
