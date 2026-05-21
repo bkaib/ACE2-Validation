@@ -3,6 +3,7 @@ ace2_units = {
     "PRATEsfc": "kg/m**2/s",
     "UGRD10m": "m/s",
     "VGRD10m": "m/s",
+    "10si": "m/s",
 }
 
 colormaps = {
@@ -10,4 +11,5 @@ colormaps = {
     "PRATEsfc": "Blues",
     "UGRD10m": "viridis",
     "VGRD10m": "viridis",
+    "10si": "viridis",
 }
