@@ -160,7 +160,7 @@ def analyse_temp_mean(
     ## Add shared colorbar
     cbar_ax = fig.add_axes([0.2, 0.08, 0.6, 0.02])
     plt.colorbar(im, cax=cbar_ax, label=constants.ace2_units[str(da.name)], orientation="horizontal")
-    fig.suptitle(f"Monthly Mean {da.name} (2001-2010) | Ensemble {n_ens}", fontsize=16)
+    fig.suptitle(f"Monthly Ensemble Mean | {da.name}", fontsize=16)
 
     ## Save figure to figures/tmp
     fig.tight_layout()
@@ -264,7 +264,7 @@ if __name__ == "__main__":
     logging.info(f"Analyse spatial mean timeseries for each variable and ensemble member in {selected_years}...")
     analyse_spatial_mean(ensembles)
 
-    # 5. Cleanup
+    # Close Client
     client.close()
     logging.info("Dask client closed.")
 
