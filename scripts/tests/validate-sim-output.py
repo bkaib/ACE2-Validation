@@ -14,6 +14,7 @@ importlib.reload(paths)
 from libraries.own_libraries import visualisation as vis
 from libraries.own_libraries import xarray_tools as xrt
 import glob
+from dask.distributed import Client
 
 #%% Configure logging
 log_dir = os.path.join(paths.PROJECT_ROOT, "logs")
@@ -205,11 +206,25 @@ def analyse_spatial_mean(ensembles: xr.Dataset):
 
 #%% Main Execution
 if __name__ == "__main__":
+    # Initialize Dask distributed client for parallelism
+    # Respects SLURM allocation: 64 CPUs, 250GB memory
+    client = Client(
+        n_workers=8,                    # Use 8 workers (leaves headroom)
+        threads_per_worker=8,           # 8 threads each = 64 total threads
+        memory_limit='28GB',            # ~224GB total (safe margin)
+        silence_logs=logging.WARNING,
+    )
+    logging.info(f"Dask Client initialized: {client}")
+    
     # Constants
     experiment_id = "2000v1940"
     n_ens = 0
     selected_years = [2003, 2005, 2009]
-    chunks = {'sample': -1, 'time': -1, 'lat': -1, 'lon': -1}
+    chunks = {
+        'sample': 1, 
+        'time': 100, # 8-10 days with 6H res. 
+        'lat': 180, 'lon': 360,        # Use full spatial dims
+        }
 
     # 1. Physical Boundaries
     # check_physical_consistency(experiment_id)
@@ -231,6 +246,10 @@ if __name__ == "__main__":
     ## Select only three years for testing
     ## We select only the years 2003, 2005, 2009
     ensembles = ensembles.sel(time=ensembles.time.dt.year.isin(selected_years))
+    
+    ## Persist data in distributed memory for faster repeated operations
+    logging.info("Persisting data to Dask workers' memory...")
+    ensembles = ensembles.persist()
 
     # 3. Temporal Mean / Spatial Field
     logging.info(f"Dataset: {ensembles}")
@@ -244,6 +263,10 @@ if __name__ == "__main__":
     # 4. Spatial Mean / Timeseries
     logging.info(f"Analyse spatial mean timeseries for each variable and ensemble member in {selected_years}...")
     analyse_spatial_mean(ensembles)
+
+    # 5. Cleanup
+    client.close()
+    logging.info("Dask client closed.")
 
     # Climate drift between two distinct periods?
     

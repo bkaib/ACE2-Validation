@@ -40,6 +40,10 @@ def analyse_spatial_mean(ensembles):
         fig.savefig(output_path, dpi=300)
         print(f"Saved figure to {output_path}")
 
+def check_climate_drift():
+    ## Check if there is a climate drift between two distinct periods (e.g., 2001-2005 vs 2006-2010)
+    pass
+
 #%% Create artificial climate data of dims (time, lat, lon)
 time = pd.date_range("2001-01-01", "2001-12-31", freq="D")
 lat = np.linspace(-90, 90, 180)
