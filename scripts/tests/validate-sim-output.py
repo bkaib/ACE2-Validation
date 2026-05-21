@@ -167,26 +167,54 @@ def analyse_temp_mean(
     fig.savefig(output_path, dpi=300)
     logging.info(f"Saved figure to {output_path}")
 
+def analyse_spatial_mean(ensembles: xr.Dataset):
+    """
+    1. Computes spatial mean for each variable and ensemble member
+    2. Plots the timeseries of the spatial mean for each variable, ensemble member and ensemble mean 
+    """
+    # 1. Compute spatial mean for each variable and ensemble member
+    logging.info(f"Computing spatial mean for each variable and ensemble member...")
+    spatial_mean = ensembles.mean(dim=["lat", "lon"])
+
+    # 2. Plot timeseries of spatial mean for each variable and ensemble member
+    for var in spatial_mean.data_vars:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        for sample in spatial_mean.sample:
+            ax.plot(
+                spatial_mean.time, 
+                spatial_mean[var].sel(sample=sample), 
+                label=f"Ensemble {sample.values}",
+                alpha=0.3,
+                )
+        ax.plot(
+            spatial_mean.time,
+            spatial_mean[var].mean(dim="sample"),
+            label="Ensemble Mean",
+            color="black",
+            linewidth=2,
+        )
+        ax.set_title(f"Spatial Mean Timeseries of {var}")
+        ax.set_xlabel("Time (days)")
+        ax.set_ylabel(f"{var} ({constants.ace2_units[str(var)]})")
+        ax.legend(loc="upper left", bbox_to_anchor=(1.04, 1))
+        ax.grid()
+        fig.tight_layout()
+        output_path = f"results/figures/ace2-sim-validation/spatial_mean_ts_{var}.png"
+        fig.savefig(output_path, dpi=300)
+        logging.info(f"Saved figure to {output_path}")
 
 #%% Main Execution
 if __name__ == "__main__":
     # Constants
     experiment_id = "2000v1940"
     n_ens = 0
+    selected_years = [2003, 2005, 2009]
+    chunks = {'sample': -1, 'time': -1, 'lat': -1, 'lon': -1}
 
-    # Physical Boundaries
+    # 1. Physical Boundaries
     # check_physical_consistency(experiment_id)
 
-    # Temporal Mean / Spatial Field
-
-    ## Load Data of one ensemble member
-    p = (
-        os.path.join(
-            paths.ACE2_ENSEMBLES, 
-            experiment_id, 
-            f"ensemble_{n_ens}.nc",
-            )
-    )
+    # 2. Load ensemble data into one dataset
     ensemble_files = (
         glob.glob(
             os.path.join(
@@ -197,21 +225,25 @@ if __name__ == "__main__":
         )
     )
     logging.info(f"Loading ensemble members of experiment {experiment_id}: {ensemble_files}")
-    # ensemble_member = xr.open_dataset(p)
-    # ensemble_member = ensemble_member.chunk({'time': -1, 'lat': -1, 'lon': -1})
     ensembles = xr.open_mfdataset(ensemble_files, combine="nested", concat_dim="sample")
-    ensembles = ensembles.chunk({'sample': 1, 'time': 365*4, 'lat': -1, 'lon': -1})
+    ensembles = ensembles.chunk(chunks)
+
+    ## Select only three years for testing
+    ## We select only the years 2003, 2005, 2009
+    ensembles = ensembles.sel(time=ensembles.time.dt.year.isin(selected_years))
+
+    # 3. Temporal Mean / Spatial Field
     logging.info(f"Dataset: {ensembles}")
-    logging.info(f"Compute mean over all ensemble members...")
+    logging.info(f"Compute mean over all ensemble members in {selected_years}...")
     ensemble_mean = ensembles.mean(dim="sample").compute()
 
     ## Analyse the temporal mean
     for var in ensemble_mean.data_vars:
         analyse_temp_mean(ensemble_mean[var], n_ens)
 
-    # Spatial Mean / Timeseries
-
-    ## Ensemble Spread & Mean
+    # 4. Spatial Mean / Timeseries
+    logging.info(f"Analyse spatial mean timeseries for each variable and ensemble member in {selected_years}...")
+    analyse_spatial_mean(ensembles)
 
     # Climate drift between two distinct periods?
     

@@ -7,26 +7,62 @@ import cartopy.crs as ccrs
 from libraries.own_libraries import visualisation as vis
 import numpy as np
 import pandas as pd
+from config import constants
 
-#%% Fucntions
+#%% Functions
+def analyse_spatial_mean(ensembles):
+    spatial_mean = ensembles.mean(dim=["lat", "lon"])
+
+    ## Plot timeseries of spatial mean for each variable and ensemble member
+    for var in spatial_mean.data_vars:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        for sample in spatial_mean.sample:
+            ax.plot(
+                spatial_mean.time, 
+                spatial_mean[var].sel(sample=sample), 
+                label=f"Ensemble {sample.values}",
+                alpha=0.3,
+                )
+        ax.plot(
+            spatial_mean.time,
+            spatial_mean[var].mean(dim="sample"),
+            label="Ensemble Mean",
+            color="black",
+            linewidth=2,
+        )
+        ax.set_title(f"Spatial Mean Timeseries of {var}")
+        ax.set_xlabel("Time (days)")
+        ax.set_ylabel(f"{var} ({constants.ace2_units[str(var)]})")
+        ax.legend(loc="upper left", bbox_to_anchor=(1.04, 1))
+        ax.grid()
+        fig.tight_layout()
+        output_path = f"results/figures/tmp/spatial_mean_timeseries_{var}.png"
+        fig.savefig(output_path, dpi=300)
+        print(f"Saved figure to {output_path}")
 
 #%% Create artificial climate data of dims (time, lat, lon)
-time = pd.date_range("2001-01-01", "2010-12-31", freq="D")
+time = pd.date_range("2001-01-01", "2001-12-31", freq="D")
 lat = np.linspace(-90, 90, 180)
 lon = np.linspace(-180, 180, 360)
-data = np.random.rand(len(time), len(lat), len(lon)) * 30 + 273.15  # Random temperature data in Kelvin
-ensemble = xr.Dataset(
+n_ens = 2
+temp_data = np.random.rand(n_ens, len(time), len(lat), len(lon)) * 30 + 273.15  # Random temperature data in Kelvin
+wind_data = np.random.rand(n_ens, len(time), len(lat), len(lon)) * 20  # Random wind speed data in m/s
+ensembles = xr.Dataset(
     {
-        "TMP2m": (("time", "lat", "lon"), data)
+        "TMP2m": (("sample","time", "lat", "lon"), temp_data),
+        "10si": (("sample","time", "lat", "lon"), wind_data)
     },
     coords={
-        "time": time,
-        "lat": lat,
-        "lon": lon
+            "time": time,
+            "lat": lat,
+            "lon": lon,
+            "sample": list(range(n_ens))  # Two ensemble members
     }
 )
 
-print(type(ensemble["TMP2m"].name))
+#%% Compute Spatial Mean / Timeseries
+
+
 
 # ## Compute grid-weighted monthly mean
 # weights = np.cos(np.deg2rad(ensemble.lat))
