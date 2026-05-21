@@ -39,9 +39,11 @@ data/tmp/*
 models/*
 libraries/*
 tutorials/*
+results/*
 !models/.gitkeep
 !libraries/.gitkeep
 !tutorials/.gitkeep
+!results/.gitkeep
 
 # --- Logs and System ---
 logs/*
