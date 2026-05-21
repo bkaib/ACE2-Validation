@@ -17,7 +17,7 @@
 | Precipitation   | PRATEsfc  | For R10, Rx1day, CWD indices
 | Wind            | UGRD10m, VGRD10m | Combine for wind speed (FG95p, FXx, WSD indices)
 
-## Ensembles
+## Ensembles and Simulations
 
 We generate ensembles within the year 2001-2010 by applying the following steps
 

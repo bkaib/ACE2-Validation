@@ -3,10 +3,7 @@ import sys
 import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
-
-
-sys.path.append("/home/g/g260230/")
-from own_libraries import visualisation as vis
+from libraries.own_libraries import visualisation as vis
 
 # %% Load ensemble data
 

@@ -10,12 +10,9 @@ from config import paths
 from config import constants
 import importlib
 importlib.reload(paths)
+from libraries.own_libraries import visualisation as vis
 
-## Own Libraries
-sys.path.append("/home/g/g260230/")
-from own_libraries import visualisation as vis
-
-# Configure logging
+#%% Configure logging
 log_dir = os.path.join(paths.PROJECT_ROOT, "logs")
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "validate-sim-output.log")
