@@ -195,7 +195,7 @@ def analyse_spatial_mean(ensembles: xr.Dataset):
             linewidth=2,
         )
         ax.set_title(f"Spatial Mean Timeseries of {var}")
-        ax.set_xlabel("Time (days)")
+        ax.set_xlabel("Time (6H)")
         ax.set_ylabel(f"{var} ({constants.ace2_units[str(var)]})")
         ax.legend(loc="upper left", bbox_to_anchor=(1.04, 1))
         ax.grid()
@@ -227,7 +227,7 @@ if __name__ == "__main__":
         }
 
     # 1. Physical Boundaries
-    # check_physical_consistency(experiment_id)
+    check_physical_consistency(experiment_id)
 
     # 2. Load ensemble data into one dataset
     ensemble_files = (

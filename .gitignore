@@ -39,11 +39,9 @@ data/tmp/*
 models/*
 libraries/*
 tutorials/*
-results/*
 !models/.gitkeep
 !libraries/.gitkeep
 !tutorials/.gitkeep
-!results/.gitkeep
 
 # --- Logs and System ---
 logs/*
@@ -61,5 +59,11 @@ jobs/*
 # Ensure we do not accidentally ignore the visible .gitkeep files in data and logs
 !data/.gitkeep
 !logs/.gitkeep
+
+# --- Results and Figures ---
+results/*
+figures/*
+!results/.gitkeep
+!figures/.gitkeep
 
 

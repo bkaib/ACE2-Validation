@@ -22,7 +22,7 @@ ACE2 was not trained on the 2001–2010 period, making it the appropriate valida
 - [x] Scale to ≥ 50 members using HPC job arrays
 - [x] Monitor runs; resubmit any failed members
 - [x] Collect and organise raw output (one file per member, consistent naming convention)
-- [ ] Compute 10m Windspeed
+- [x] Compute 10m Windspeed
 - [ ] Basic sanity check: verify output completeness and plausibility (global mean T2m, total pr)
 
 ## Outputs
@@ -30,6 +30,7 @@ ACE2 was not trained on the 2001–2010 period, making it the appropriate valida
 - `data/raw/ace2-ensembles/` — organised ensemble of each simulation version.
 - Job scripts in `jobs/`
 - Run log in `logs/`
+
 
 ## Dependencies
 - ACE2 model code and weights available

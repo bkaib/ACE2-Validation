@@ -83,10 +83,11 @@ ensembles = xr.Dataset(
 
 # %% Load ensemble data
 
-# print("Loading ensemble data...")
-# ensemble = xr.open_dataset("data/raw/ace2-ensembles/2000v1940/ensemble_0.nc")
-# # print("Computing temporal mean...")
-# # data = ensemble["10si"].mean(dim="time").compute()
+print("Loading ensemble data...")
+ensemble = xr.open_dataset("data/raw/ace2-ensembles/2000v1940/ensemble_0.nc")
+ensemble
+# print("Computing temporal mean...")
+# data = ensemble["10si"].mean(dim="time").compute()
 
 # # print("Plot temporal mean of 10m wind speed...")
 # # fig, ax = vis.world_map(
@@ -146,3 +147,4 @@ ensembles = xr.Dataset(
 # output_path = "results/figures/tmp/monthly_mean_10m_wind_speed_all_months_ensemble_0.png"
 # fig.savefig(output_path, dpi=300)
 # print(f"Saved figure to {output_path}")
+# %%

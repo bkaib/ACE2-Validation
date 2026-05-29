@@ -37,17 +37,17 @@ Indendation indicates sub-tasks. Use the following format for each task:
 ## Milestone 1 - Generate ACE2 Simulations
 
 - **Status**: 🟡 In progress
-
-- [ ] **[HIGH]** Validate the simulation output based on the 1940 version — milestone: `milestone1` — added: 2024-06-01
-- [ ] **[HIGH]** Collect relevant data of ERA5 to compute ETCCDIs #phd ⏫  — milestone: `milestone1` — added: 2024-06-01
+- [ ] **[HIGH]** Document the validation of ace2 simulation output — milestone: `milestone1` — added: 2024-06-01
     
+
+## Milestone 2 - Compute ETCCDI Indices
+
+- [ ] **[HIGH]** Collect relevant data of ERA5 to compute ETCCDIs #phd ⏫  — milestone: `milestone1` — added: 2024-06-01
+
 ## Backlog
 
-- [ ] **[MED]** Compute ETCCDIs of ERA5 — milestone: `milestone03` — added: 2024-06-01
-- [ ] **[MED]** Compute ETCCDIs of ACE2 simulations — milestone: `milestone03` — added: 2024-06-01
-- [ ] **[MED]** Validate computed ETCCDIs — milestone: `milestone03` — added: 2024-06-01
-
 ## Completed
+- [x] **[HIGH]** ~~Validate the ace2 simulation output — milestone: `milestone1` — added: 2024-06-01~~
 - [x] **[HIGH]** Compute the ACE2-Windspeed based on UGRD10m and VGRD10m — milestone: `milestone1` — added: 2024-06-01
 - [x] **[HIGH / Running]** Extract the period 2001-2010 from each simulation — milestone: `milestone1` — added: 2024-06-01
 - [x] **[HIGH]** Check what output variables of ACE2 we need to compute the ETCCDIs — milestone: `milestone1` — added: 2024-06-01
