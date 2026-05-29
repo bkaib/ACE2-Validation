@@ -85,9 +85,13 @@ ensembles = xr.Dataset(
 
 print("Loading ensemble data...")
 ensemble = xr.open_dataset("data/raw/ace2-ensembles/2000v1940/ensemble_0.nc")
-ensemble
-# print("Computing temporal mean...")
-# data = ensemble["10si"].mean(dim="time").compute()
+print(ensemble)
+
+print(50*"=")
+
+p = "/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ACE2-ERA5/output_directory/2000v1940/autoregressive_predictions.nc"
+ds = xr.open_dataset(p)
+print(ds)
 
 # # print("Plot temporal mean of 10m wind speed...")
 # # fig, ax = vis.world_map(

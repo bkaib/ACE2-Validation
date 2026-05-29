@@ -50,7 +50,14 @@ The ensemble data of each simulation after preprocessing contains the following 
 - UGRD10m, VGRD10m
 - 10si (10m surface wind speed)
 
-The data is stored at for the initialization of 1940
+
+The original data from the simulation (e.g. 2000-2011 without wind speed) is stored at 
+
+```
+data/raw/ACE2-ERA5/output_directory/2000v1940/autoregressive_predictions.nc
+```
+
+The data for 2001-2010 including the windspeed is stored at for the initialization of 1940
 
 ```
 data/raw/ace2-ensembles/2000v1940
