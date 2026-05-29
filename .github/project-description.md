@@ -1,21 +1,32 @@
 # Goal of the Project
 
-1. ACE2 can reproduce basic statistics of the ERA5 climate well (see Watt-Meyer et al. 2025).
-2. It is not yet shown how well ACE2 can reproducte extreme statistics of ERA5.
-3. In order to use it for simulations and analysis of extremes, this validation is useful.
+This project addresses the **extreme event and tail statistics** component of a comprehensive validation of the ACE2 atmospheric emulator. The supervisor concurrently validates broader climatic properties (seasonal climatology, mean circulation, low-frequency modes, surface fluxes, and stability). This document focuses specifically on extremes.
 
-# Purpose of the Validation
+**Key objectives:**
+1. ACE2 reproduces basic climate statistics well (Watt-Meyer et al. 2025)
+2. It is not yet demonstrated whether ACE2 reproduces the **extreme value tail behavior** of ERA5
+3. Large ensemble validation of extremes is essential for fitness-for-purpose as an ensemble tool for extreme risk analysis
 
-- If ACE2 can reproduce the extreme value tail behavior of ERA5, then it can be used to run large ensembles of climate simulations to better understand the risks of extreme events under climate change at a fraction of the computational cost of running large ensembles of physical climate model simulations.
-- If ACE2 cannot reproduce the extreme value tail behavior of ERA5, then it may not be suitable for simulating extreme events, and further development may be needed to improve its performance in this regard.
+# Purpose of This Validation (Extremes Component)
+
+- **If ACE2 reproduces extreme tail behavior**: it is a viable tool for running large ensembles of climate simulations to assess risks of extreme events under climate change, at a fraction of the cost of traditional coupled model ensembles
+- **If ACE2 fails to reproduce extreme tail behavior**: further development is needed to improve its performance in extreme event simulation, limiting its utility for ensemble risk studies
+- The ensemble approach (≥50 members) compensates for ACE2's shorter validation window, enabling robust return-level estimation comparable to the long ERA5 record (1941–2022)
 
 
-# Research Questions
+# Research Questions — Extremes Focus
 
-1. To what extent does the ACE2 emulator accurately reproduce the spatial and temporal patterns of IPCC ETCCDI indices compared to ERA5 reanalysis?
-2. How does the ACE2 emulator’s representation of extreme value tail behavior—specifically 50- and 100-year return levels—compare to the physical limits observed in ERA5?
-3. Is ACE2 recovering wind extremes similar to ERA5?
-4. (Does ACE2 maintain the multivariate dependencies required to simulate compound extremes (e.g., concurrent hot-dry or cold-wet events), or does it exhibit a decoupling of physical variables compared to ERA5?)
+This project addresses the extreme event and tail statistics component of the broader ACE2 validation. The supervisor is separately validating seasonal climatology, mean circulation, low-frequency modes (NAO, ENSO, IPO), and surface flux biases for coupled model embedding.
+
+**Extremes-focused research questions:**
+
+1. **ETCCDI Index Climatology (RQ1):** To what extent does ACE2 accurately reproduce the spatial and temporal patterns of IPCC ETCCDI extreme indices compared to ERA5 reanalysis?
+
+2. **Extreme Value Tails (RQ2):** How does ACE2's representation of extreme value tail behavior—specifically 10-, 50-, and 100-year return levels—compare to ERA5?
+
+3. **Wind Extremes (RQ3):** Is ACE2 recovering wind extremes (annual maxima distributions, spatial coherence of storm tracks) similar to ERA5?
+
+4. **Compound Extremes (RQ4, exploratory):** Does ACE2 maintain the multivariate dependencies required to simulate compound extremes (e.g., concurrent hot-dry or cold-wet events), or does it exhibit decoupling compared to ERA5?
 
 ## Methodology / Approach
 
@@ -62,11 +73,17 @@ If variable availability permits (T2m + pr or T2m + sfcWind):
 - Assess whether ACE2 preserves inter-variable dependencies in the tail
 
 # Expected Outcomes
- 
-- Quantitative assessment of ACE2's ability to reproduce ETCCDI index climatologies (spatial patterns, magnitudes, biases)
-- Return level maps for temperature, precipitation, and wind with uncertainty estimates, benchmarked against ERA5
-- A clear statement on whether ACE2 is fit-for-purpose as an ensemble tool for extreme event analysis
-- Guidance on which extremes ACE2 represents well vs. where it shows systematic biases
+
+This project delivers the **extreme events validation** section of the broader ACE2 climate validation, including:
+
+- Quantitative assessment of ACE2's ability to reproduce ETCCDI index climatologies (spatial patterns, magnitudes, biases) via bias maps and spatial correlation metrics
+- Return level maps for temperature, precipitation, and wind (10-, 50-, 100-year) with uncertainty estimates, benchmarked against ERA5
+- Analysis of wind extremes: annual maxima distributions, spatial coherence of extreme wind events, and inter-annual variability
+- Assessment of compound extremes: joint exceedance probabilities and copula structure for temperature-precipitation and temperature-wind pairs
+- A clear quantitative statement on whether ACE2 is fit-for-purpose for ensemble-based extreme event analysis
+- Identification of which extremes ACE2 represents well vs. where it shows systematic biases
+
+**Complementary validation by supervisor:** Seasonal climatology, mean circulation, low-frequency modes, surface flux biases, and long-term stability are covered separately to provide a complete picture of ACE2's climatic realism.
 
 # Milestones
 
@@ -78,3 +95,16 @@ If variable availability permits (T2m + pr or T2m + sfcWind):
 - 06-wind-extremes.md — Wind distributions, storm tracks, spatial coherence (RQ3)
 - 07-compound-extremes.md — Joint exceedance & copula analysis (RQ4, exploratory)
 - 08-synthesis-reporting.md — Final figures, tables, and conclusions
+
+## Scope & Constraints
+
+This project is **focused on extreme event and tail statistics validation**. The following important climate properties are covered **separately** by the supervisor as part of the broader ACE2 validation effort:
+
+- Seasonal climatology and mean atmospheric circulation
+- Low-frequency modes of variability (NAO, ENSO, IPO)
+- Monsoon response to tropical SST variability
+- Surface flux biases (critical for future ocean coupling)
+- Long-term model stability and climate drift
+- Stratospheric circulation
+
+Taken together, the supervisor's analysis + this project's extremes validation provide a comprehensive assessment of ACE2's suitability for coupled climate emulation and ensemble-based extreme risk studies.
