@@ -1,8 +1,8 @@
-# Milestone 2: Preprocess Data of ERA5 and ACE2
+# Milestone 2: Compute ETCCDI Indices
 
-> **Milestone:** [02-preprocess-data.md](02-preprocess-data.md)  
+> **Milestone:** [02-compute-etccdi-indices.md](02-compute-etccdi-indices.md) 
 > **Status:** In Progress
-> **Started:** 14.05.2026
+> **Started:** 29.05.2026
 > **Completed:** -
 
 ---
@@ -23,8 +23,48 @@ We use the following variables of ERA5 to compute the ETCCDI indices:
 
 # ACE2
 
-From the ACE2 simulations done in Milestone 1, we extract the period 2001-2010. We then compute the 10m wind speed from the UGRD10m and VGRD10m variables. 
+We use the ACE2 ensembles from milestone 01. 
+
 **Selected Period:** 2001-2010 (10 years)
 
-**Selected Variables:**
-We use the following variables of ACE2 to compute the ETCCDI indices:
+The ETCCDIs are based on aggregated daily data, where the method of aggregation depends on the index.
+Hence, we aggregate the 6H data of ACE2 to daily data using the following aggregations to account for the corresponding ETCCDIs
+
+```
+scripts/preprocessing/get_daily_ace2.py
+```
+
+- TMP2m
+	- tasmax
+	- tasmin
+- PRATEsfc
+	- pr: sum over day
+- 10m Wind Speed
+	- sfcWind_mean
+	- sfcWind_max
+
+
+# Quick Notes
+
+## 29.05.2026
+
+**Script creation: `get_daily_ace2.py`**
+
+Created preprocessing script to aggregate 6-hourly ACE2 ensemble data to daily values for ETCCDI computation.
+
+**Key decisions:**
+- Variable mapping: TMP2m → tasmax/tasmin, PRATEsfc → pr, 10si → sfcWind_mean/sfcWind_max
+- Aggregation methods:
+  - Temperature: Daily max and min (needed for TXx, TNn, TX90p, TN10p, WSDI)
+  - Precipitation: Daily sum (needed for R10, Rx1day, CWD)
+  - Wind: Daily mean AND max (FG95p/WSD need mean; FXx needs max)
+- Output: Single netCDF per ensemble file containing all 5 aggregated variables (tasmax, tasmin, pr, sfcWind_mean, sfcWind_max)
+- Folder structure preserved: `6H/{scenario}/ensemble_N.nc` → `1D/{scenario}/ensemble_N.nc`
+
+**Features:**
+- Comprehensive logging to `logs/get_daily_ace2/` with timestamps
+- Automatic variable detection (handles multiple variable naming conventions)
+- Error handling and summary statistics
+- Skips already-processed files
+
+**Status:** Ready to run on full 48-ensemble dataset (4 scenarios × 12 members)

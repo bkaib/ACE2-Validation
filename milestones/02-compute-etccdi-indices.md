@@ -18,9 +18,14 @@ ETCCDI indices are the standard framework for characterising the frequency, inte
 | Precipitation | R10 | Annual count of days with pr ≥ 10 mm |
 | Precipitation | Rx1day | Annual maximum 1-day precipitation |
 | Precipitation | CWD | Maximum annual consecutive wet days |
-| Wind (ext.) | FG95p | Fraction of days with wind speed > 95th percentile |
-| Wind (ext.) | FXx | Annual maximum wind speed |
-| Wind (ext.) | WSD | Windy Spell Duration |
+| Wind (ext.) | FG95p | The count of days where daily mean wind speed exceeds the 95th percentile. This validates the "frequency" of high-wind events. |
+| Wind (ext.) | FXx | Maximum value of daily maximum wind gust (m/s).
+
+Let $FX_{ij}$ be the daily maximum wind gust on day $i$ of period $j$. Then the maximum daily maximum wind gust for period $j$ is 
+$$
+FXx_j = max(FX_{ij})
+$$ |
+| Wind (ext.) | WSD |The number of consecutive days with wind speeds above a certain threshold. This tests if the emulator can "hold" a storm system in place or if it moves them too fast. |
 
 ## Steps
 
