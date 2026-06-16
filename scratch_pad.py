@@ -29,7 +29,39 @@ data
 
 
 # %%
-d2 = xr.open_dataset("/work/gg0304/g260230/data/ERA5/E5/sf/an/1D/165/E5sf00_1D_2016-01_165.nc")
-d2
+var = "TMP2m"
+yyyy = "2010"
+mm = "01"
+dd = "01"
+path_prefix = constants.era5_params[var]["1H"]
+PARAM = constants.era5_params[var]["PARAM"]
+filetype = constants.era5_params[var]["filetype"]
+d = xr.open_dataset(f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", engine='cfgrib' if filetype == "grb" else None)
+
+print(d)
+# Only select data where the coordinate valid_times corresponds to the ACE2 timesteps
+ace2_hours = [0, 6, 12, 18]
+d_ace2 = d.where(d.valid_time.dt.hour.isin(ace2_hours), drop=True)
+d_ace2
+
+# Select the min and max
+d_ace2_min = d_ace2.isel(values=[0,1,2]).min(dim="time")
+d_ace2_max = d_ace2.isel(values=[0,1,2]).max(dim="time")
+
+print(d_ace2_max)
+
+# Add the current max and min to a dataset that contains the daily min and max as separate variables
+date = pd.to_datetime(f"{yyyy}-{mm}-{dd}")
+daily_ds = xr.Dataset({
+    "daily_min": d_ace2_min["t2m"].expand_dims(time=[date]),
+    "daily_max": d_ace2_max["t2m"].expand_dims(time=[date]),
+})
+daily_ds
+
+
+
+# %%
+ace2 = xr.open_dataset("data/raw/ace2-ensembles/6H/2000v1940/ensemble_0.nc")
+ace2.time.values[:5]
 
 # %%

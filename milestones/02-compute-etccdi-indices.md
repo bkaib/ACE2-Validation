@@ -29,8 +29,8 @@ $$ |
 
 ## Steps
 
-- [ ] Choose / implement index computation library (e.g. `xclim`, `climdex`, or custom)
-- [ ] Define percentile baselines (ERA5 1981–2010 (30y) climatological period for TX90p, TN10p, FG95p)
+- [ ] Preprocess ERA5 data similar to ACE2 (e.g. resample to 6H then daily, compute daily max/min/mean as needed, ensure consistent units)
+- [ ] Define percentile baselines (ERA5 1981–2010 (30y) climatological period for relative indices)
 - [ ] Compute all indices from processed ERA5 (`data/processed/ERA5/`)
 - [ ] Compute all indices for each ACE2 ensemble member based on ERA5 thresholds (`data/processed/ACE2/`)
 - [ ] Compute ACE2 ensemble mean and spread (std, 5th–95th percentile range) across members
