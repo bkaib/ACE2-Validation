@@ -154,25 +154,7 @@ def preprocess_tmp2m(
         logger.info(f"Dimension of the daily min datasets: {daily_min.dims}")
         logger.info(f"Dimension of the daily max datasets: {daily_max.dims}")
         
-        # Step 4: Convert lon/lat coordinates to dimensions
-        logger.info(f"Converting lon/lat coordinates to dimensions...")
-        daily_min = daily_min.assign_coords(
-            lat=('values', daily_min['latitude'].values),
-            lon=('values', daily_min['longitude'].values)
-        ).set_index(values=['lat', 'lon']).unstack('values')
-        
-        daily_max = daily_max.assign_coords(
-            lat=('values', daily_max['latitude'].values),
-            lon=('values', daily_max['longitude'].values)
-        ).set_index(values=['lat', 'lon']).unstack('values')
-        
-        # Remove unnecessary coordinates
-        unnecessary_coords = ['latitude', 'longitude', "step", "surface", "number"]
-        logger.info(f"Removing unnecessary coordinates from dataset: {unnecessary_coords}")
-        daily_min = daily_min.drop_vars(unnecessary_coords)
-        daily_max = daily_max.drop_vars(unnecessary_coords)
-        
-        # Step 5: Add to dataset with time dimension
+        # Step 4: Add to dataset with time dimension
         logger.info(f"Adding daily min and max to dataset with time dimension...")
         daily_min = daily_min.expand_dims(time=[current_date])
         daily_max = daily_max.expand_dims(time=[current_date])
@@ -184,13 +166,13 @@ def preprocess_tmp2m(
         daily_min_datasets.append(min_ds)
         daily_max_datasets.append(max_ds)
 
-    # Step 6: Concatenate all daily datasets along time dimension
+    # Step 5: Concatenate all daily datasets along time dimension
     logger.info(f"Concatenating all daily datasets for year {yyyy} along time dimension...")
     daily_min_ds = xr.concat(daily_min_datasets, dim="time")
     daily_max_ds = xr.concat(daily_max_datasets, dim="time")
     logger.info(f"Concatenated daily datasets for year {yyyy}, final time dimension length: {len(daily_min_ds.time)}")
 
-    # Step 7: Save the final dataset to a NetCDF file
+    # Step 6: Save the final dataset to a NetCDF file
     logger.info(f"Saving the final dataset to NetCDF files...")
     folder = f"data/processed/era5/1D/{var}/"
     Path(folder).mkdir(parents=True, exist_ok=True)
@@ -203,31 +185,92 @@ def preprocess_tmp2m(
     logger.info(f"Saved daily min dataset to {file_min}")
     logger.info(f"Saved daily max dataset to {file_max}")
 
+def remap_temperature_with_cdo(yyyy):
+    from cdo import Cdo
+    logger.info(f"Starting CDO remapping of the preprocessed TMP2m data")
+    cdo = Cdo()
+    target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
+    input_file_max = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/daily_max_{yyyy}.nc"
+    temp_output_file_max = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/remapped_daily_max_{yyyy}.nc" # Temporary output file for remapped data
+    input_file_min = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/daily_min_{yyyy}.nc"
+    temp_output_file_min = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/remapped_daily_min_{yyyy}.nc" # Temporary output file for remapped data
+
+    # Remap Maxima
+    try:
+        logger.info(f"Remapping daily max for year {yyyy} with CDO...")
+        cdo.remapnn(
+            target_grid_file, 
+            input=input_file_max, 
+            output=temp_output_file_max,
+            options='-f nc', # Convert to netCDF
+        )
+        logger.info(f"Successfully remapped {input_file_max} to {temp_output_file_max}")
+
+    except Exception as e:
+        logger.error(f"Error during CDO remapping of {input_file_max}: {e}", exc_info=True)
+        raise
+
+    # Remap Minima
+    try:
+        logger.info(f"Remapping daily min for year {yyyy} with CDO...")
+        cdo.remapnn(
+            target_grid_file, 
+            input=input_file_min, 
+            output=temp_output_file_min,
+            options='-f nc', # Convert to netCDF
+        )
+        logger.info(f"Successfully remapped {input_file_min} to {temp_output_file_min}")
+
+    except Exception as e:
+        logger.error(f"Error during CDO remapping of {input_file_min}: {e}", exc_info=True)
+        raise
+
+    # Delete original files after remapping & rename remapped files to original file names
+    try:
+        os.remove(input_file_max)
+        os.rename(temp_output_file_max, input_file_max)
+        logger.info(f"Replaced original file {input_file_max} with remapped file {temp_output_file_max}")
+
+        os.remove(input_file_min)
+        os.rename(temp_output_file_min, input_file_min)
+        logger.info(f"Replaced original file {input_file_min} with remapped file {temp_output_file_min}")
+
+    except Exception as e:
+        logger.error(f"Error during cleanup of original and remapped files for year {yyyy}: {e}", exc_info=True)
+        raise
+
 
 
 # %% Main
 def main():
+    #-------------------------
     # Constants
+    #-------------------------
     years = np.arange(1981, 2011).astype(str)
 
     # Configure Dask for Levante HPC environment
-    n_workers = os.cpu_count() or 4  # Use all available CPUs
-    logger.info(f"Detected {n_workers} CPUs available for Dask")
+    n_workers = 10  # Limit to 10 workers instead of all available CPUs
+    logger.info(f"Configured Dask to use {n_workers} workers")
     
     # Configure Dask to use threads scheduler (good for I/O-bound tasks like file reading)
     dask_config.set(scheduler='threads', num_workers=n_workers)
     logger.info(f"Configured Dask with threads scheduler and {n_workers} workers")
 
+    #-------------------------
+    # TEMPERATURE
+    #-------------------------
+
     # Preprocess Temperature with Dask parallelization
+    #-------------------------
     start_time_tmp2m = time.time()
     logger.info(f"Start preprocessing of TMP2m with Dask parallelization")
     logger.info(f"Processing {len(years)} years in parallel")
     
-    # Create delayed tasks for each year
+    ## Create delayed tasks for each year
     delayed_tasks = [delayed(preprocess_tmp2m)(yyyy) for yyyy in years]
     logger.info(f"Created {len(delayed_tasks)} delayed tasks for years {years[0]}-{years[-1]}")
     
-    # Execute all tasks in parallel
+    ## Execute all tasks in parallel
     try:
         compute(*delayed_tasks)
         logger.info(f"Successfully completed all {len(delayed_tasks)} tasks")
@@ -238,6 +281,15 @@ def main():
     elapsed = time.time() - start_time_tmp2m
     logger.info(f"Preprocessing of TMP2m completed in {elapsed:.2f} seconds")
 
+    # Remap the Temperature data with CDO
+    #-------------------------
+    for yyyy in years:
+        logger.info(f"Remapping daily temperature for year {yyyy} with CDO...")
+        remap_temperature_with_cdo(yyyy)
+    
+    #-------------------------
+    # PRECIPITATION
+    #-------------------------
     # Preprocess Precipitation
     start_time_precip = time.time()
     
