@@ -129,10 +129,14 @@ def preprocess_tmp2m(
         
         # Step 1: Load data of the day
         logger.info(f"Processing {var} for {current_date.strftime('%Y-%m-%d')}")
-        data = xr.open_dataset(
-            f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", 
-            engine='cfgrib' if filetype == "grb" else None
-        )
+        try:
+            data = xr.open_dataset(
+                f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", 
+                engine='cfgrib' if filetype == "grb" else None
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load data for {current_date.strftime('%Y-%m-%d')}: {str(e)}. Skipping this date.")
+            continue
         
         # Step 2: Filter ACE2 timestamps
         logger.info(f"Filtering ACE2 timestamps")

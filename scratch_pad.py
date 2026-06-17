@@ -51,7 +51,7 @@ for current_date in date_range:
     daily_min = filtered_data.min(dim="time")
     daily_max = filtered_data.max(dim="time")
     
-    # Step 5: Add to dataset with time dimension
+    # Step 4: Add to dataset with time dimension
     daily_min = daily_min.expand_dims(time=[current_date])
     daily_max = daily_max.expand_dims(time=[current_date])
     
