@@ -12,56 +12,77 @@ from libraries.own_libraries import levante_manager
 import importlib
 importlib.reload(constants)
 
-# %%
-yyyy = "1961"
-mm = "07"
-dd = "24"
-PARAM = "TMP2m"
-TRES = "1H"
-FAMILY = "E5"
-LEVEL = "sf"
-TYPE = "an"
-
-path = f"/pool/data/ERA5/{FAMILY}/{LEVEL}/{TYPE}/{TRES}/{constants.era5_params[PARAM]}/E5{LEVEL}00_{TRES}_{yyyy}-{mm}-{dd}_{constants.era5_params[PARAM]}.grb"
-data = xr.open_dataset(path, engine='cfgrib')
-data
-
 
 
 # %%
+
+# Parameters
 var = "TMP2m"
-yyyy = "2010"
-mm = "01"
-dd = "01"
+ace2_hours = [0, 6, 12, 18]
 path_prefix = constants.era5_params[var]["1H"]
 PARAM = constants.era5_params[var]["PARAM"]
 filetype = constants.era5_params[var]["filetype"]
-d = xr.open_dataset(f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", engine='cfgrib' if filetype == "grb" else None)
 
-print(d)
-# Only select data where the coordinate valid_times corresponds to the ACE2 timesteps
-ace2_hours = [0, 6, 12, 18]
-d_ace2 = d.where(d.valid_time.dt.hour.isin(ace2_hours), drop=True)
-d_ace2
+# Create date range to loop over (example: Jan 1-5, 2010)
+date_range = pd.date_range(start="2010-01-01", end="2010-01-05", freq="D")
 
-# Select the min and max
-d_ace2_min = d_ace2.isel(values=[0,1,2]).min(dim="time")
-d_ace2_max = d_ace2.isel(values=[0,1,2]).max(dim="time")
+# Initialize empty list to store daily datasets
+daily_min_datasets = []
+daily_max_datasets = []
 
-print(d_ace2_max)
+# Loop over each day
+for current_date in date_range:
+    yyyy = str(current_date.year)
+    mm = f"{current_date.month:02d}"
+    dd = f"{current_date.day:02d}"
+    
+    # Step 1: Load data of the day
+    data = xr.open_dataset(
+        f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", 
+        engine='cfgrib' if filetype == "grb" else None
+    )
+    
+    # Step 2: Filter ACE2 timestamps
+    filtered_data = data.where(
+        data.valid_time.dt.hour.isin(ace2_hours), drop=True
+    )
+    
+    # Step 3: Compute min and max for the selected hours
+    daily_min = filtered_data.isel(values=[0, 1, 2]).min(dim="time")
+    daily_max = filtered_data.isel(values=[0, 1, 2]).max(dim="time")
+    
+    # Step 4: Convert lon/lat coordinates to dimensions
+    daily_min = daily_min.assign_coords(
+        lat=('values', daily_min['latitude'].values),
+        lon=('values', daily_min['longitude'].values)
+    ).set_index(values=['lat', 'lon']).unstack('values')
+    
+    daily_max = daily_max.assign_coords(
+        lat=('values', daily_max['latitude'].values),
+        lon=('values', daily_max['longitude'].values)
+    ).set_index(values=['lat', 'lon']).unstack('values')
+    
+    # Remove unnecessary coordinates
+    daily_min = daily_min.drop_vars(['latitude', 'longitude', "step", "surface", "number"])
+    daily_max = daily_max.drop_vars(['latitude', 'longitude', "step", "surface", "number"])
+    
+    # Step 5: Add to dataset with time dimension
+    daily_min = daily_min.expand_dims(time=[current_date])
+    daily_max = daily_max.expand_dims(time=[current_date])
+    
+    # Create dataset for this day and add to list
+    min_ds = xr.Dataset({'tasmin': daily_min["t2m"]})
+    max_ds = xr.Dataset({'tasmax': daily_max["t2m"]})
+    daily_min_datasets.append(min_ds)
+    daily_max_datasets.append(max_ds)
 
-# Add the current max and min to a dataset that contains the daily min and max as separate variables
-date = pd.to_datetime(f"{yyyy}-{mm}-{dd}")
-daily_ds = xr.Dataset({
-    "daily_min": d_ace2_min["t2m"].expand_dims(time=[date]),
-    "daily_max": d_ace2_max["t2m"].expand_dims(time=[date]),
-})
-daily_ds
+# Step 6: Concatenate all daily datasets along time dimension
+daily_min_ds = xr.concat(daily_min_datasets, dim="time")
+daily_max_ds = xr.concat(daily_max_datasets, dim="time")
 
+daily_min_ds
 
-
-# %%
-ace2 = xr.open_dataset("data/raw/ace2-ensembles/6H/2000v1940/ensemble_0.nc")
-ace2.time.values[:5]
-
+# Step 7: Save the final dataset to a NetCDF file
+daily_min_ds.to_netcdf(f"daily_min_{yyyy}.nc")
+daily_max_ds.to_netcdf(f"daily_max_{yyyy}.nc")
 # %%
