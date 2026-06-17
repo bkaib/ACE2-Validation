@@ -19,10 +19,12 @@ import importlib
 import warnings
 from pathlib import Path
 from datetime import datetime
-from config.project_logging import setup_logger
+from config.project_logging import setup_logger, setup_parallel_logger
 importlib.reload(constants)
 import argparse
 import time
+from dask import delayed, compute, config as dask_config
+import os
 
 # %% Setup Parser
 def parse_arguments() -> argparse.Namespace:
@@ -74,7 +76,7 @@ Examples:
     return parser.parse_args()
 
 # %% Setup logger
-logger = setup_logger("era5_preprocessing")
+logger, queue_listener = setup_parallel_logger("era5_preprocessing", use_queue_listener=True)
 
 # %% Functions
 def preprocess_prate():
@@ -206,20 +208,46 @@ def preprocess_tmp2m(
 # %% Main
 def main():
     # Constants
-    years = np.arange(1981, 1982).astype(str)
+    years = np.arange(1981, 2011).astype(str)
 
-    # Preprocess Temperature
+    # Configure Dask for Levante HPC environment
+    n_workers = os.cpu_count() or 4  # Use all available CPUs
+    logger.info(f"Detected {n_workers} CPUs available for Dask")
+    
+    # Configure Dask to use threads scheduler (good for I/O-bound tasks like file reading)
+    dask_config.set(scheduler='threads', num_workers=n_workers)
+    logger.info(f"Configured Dask with threads scheduler and {n_workers} workers")
+
+    # Preprocess Temperature with Dask parallelization
     start_time_tmp2m = time.time()
-    logger.info(f"Start preprocessing of TMP2m")
-    for yyyy in years:
-        preprocess_tmp2m(yyyy)
+    logger.info(f"Start preprocessing of TMP2m with Dask parallelization")
+    logger.info(f"Processing {len(years)} years in parallel")
+    
+    # Create delayed tasks for each year
+    delayed_tasks = [delayed(preprocess_tmp2m)(yyyy) for yyyy in years]
+    logger.info(f"Created {len(delayed_tasks)} delayed tasks for years {years[0]}-{years[-1]}")
+    
+    # Execute all tasks in parallel
+    try:
+        compute(*delayed_tasks)
+        logger.info(f"Successfully completed all {len(delayed_tasks)} tasks")
+    except Exception as e:
+        logger.error(f"Error during Dask computation: {e}", exc_info=True)
+        raise
+    
     elapsed = time.time() - start_time_tmp2m
     logger.info(f"Preprocessing of TMP2m completed in {elapsed:.2f} seconds")
 
     # Preprocess Precipitation
-    
+    start_time_precip = time.time()
     
     # Computation time
+    
+    # Clean up logging queue listener
+    if queue_listener is not None:
+        logger.info("Shutting down logging queue listener...")
+        queue_listener.stop()
+        logger.info("Logging queue listener stopped successfully")
     
 if __name__ == "__main__":
     main()
