@@ -5,8 +5,8 @@
 """
 
 # %% Modules
-import logging
 import sys
+sys.path.append("/work/gg0304/g260230/projects/ACE2-Validation/")
 import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
@@ -90,7 +90,10 @@ def preprocess_prate():
     d = xr.open_dataset(f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", engine='cfgrib' if filetype == "grb" else None)
 
 
-def preprocess_tmp2m(yyyy):
+def preprocess_tmp2m(
+        yyyy,
+        ace2_hours = [0, 6, 12, 18],
+        ):
     """Preprocesses the daily temperature for each year separately.
     Applies the following steps
     1. Load the ERA5 data of t2m from Levante.
@@ -104,7 +107,6 @@ def preprocess_tmp2m(yyyy):
 
     # Parameters
     var = "TMP2m"
-    ace2_hours = [0, 6, 12, 18]
     path_prefix = constants.era5_params[var]["1H"]
     PARAM = constants.era5_params[var]["PARAM"]
     filetype = constants.era5_params[var]["filetype"]
@@ -140,14 +142,15 @@ def preprocess_tmp2m(yyyy):
         if not all(filtered_data.valid_time.dt.date == current_date.date()):
             logger.warning(f"Some timestamps in the filtered data do not correspond to the current date {current_date.strftime('%Y-%m-%d')}")
         logger.info(f"Filtered data contains {len(filtered_data.valid_time)} timestamps corresponding to ACE2 6-hourly data")
+        logger.info(f"Timestamps are: {filtered_data.valid_time.values}")
 
         # Step 3: Compute min and max for the selected hours
         logger.info(f"Computing daily min and max across ACE2 timestamps for the whole globe...")
         daily_min = filtered_data.min(dim="time")
         daily_max = filtered_data.max(dim="time")
         logger.info(f"Computed daily min and max for {current_date.strftime('%Y-%m-%d')}")
-        logger.info(f"Dimension of the daily min datasets: {daily_min.dims}, shape: {daily_min.shape}")
-        logger.info(f"Dimension of the daily max datasets: {daily_max.dims}, shape: {daily_max.shape}")
+        logger.info(f"Dimension of the daily min datasets: {daily_min.dims}")
+        logger.info(f"Dimension of the daily max datasets: {daily_max.dims}")
         
         # Step 4: Convert lon/lat coordinates to dimensions
         logger.info(f"Converting lon/lat coordinates to dimensions...")
@@ -203,7 +206,7 @@ def preprocess_tmp2m(yyyy):
 # %% Main
 def main():
     # Constants
-    years = range(1981, 2011).astype(str)
+    years = np.arange(1981, 1982).astype(str)
 
     # Preprocess Temperature
     start_time_tmp2m = time.time()
