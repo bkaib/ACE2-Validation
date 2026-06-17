@@ -20,9 +20,24 @@ colormaps = {
 }
 
 era5_params = {
-    "TMP2m": {"PARAM": 167, "1H": "/pool/data/ERA5/E5/sf/an/1H/167/E5sf00_1H_", "filetype": "grb"},
-    "PRATEsfc": {"PARAM": 228, "1H": "/pool/data/ERA5/E5/sf/fc/1H/228/E5sf12_1H_", "filetype": "grb"},
-    "10si": {"PARAM": 207, "1D": "/work/gg0304/g260230/data/ERA5/E5/sf/an/1D/207/E5sf00_1D_", "filetype": "nc"},
+    "TMP2m": {
+        "PARAM": 167, 
+        "1H": "/pool/data/ERA5/E5/sf/an/1H/167/E5sf00_1H_", 
+        "filetype": "grb",
+        "unit": "K",
+        },
+    "PRATEsfc": {
+        "PARAM": 228, 
+        "1H": "/pool/data/ERA5/E5/sf/fc/1H/228/E5sf12_1H_", 
+        "filetype": "grb",
+        "unit": "m",
+        },
+    "10si": {
+        "PARAM": 207, 
+        "1D": "/work/gg0304/g260230/data/ERA5/E5/sf/an/1D/207/E5sf00_1D_", 
+        "filetype": "nc",
+        "unit": "m/s",
+        },
 }
 
 #-------------
