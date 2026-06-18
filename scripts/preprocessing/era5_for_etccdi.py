@@ -475,6 +475,8 @@ def process_single_year(yyyy):
         return yyyy, False
 
 def main():
+    # TODO: The preprocessing functions of tmp2m and prate need to be adjusted to the idea of the preprocessing of windspeed.
+    # e.g. loading all files of one year at once and then computing to maximize RAM.
     years = range(1982, 2010 + 1)
     
     # Configure Dask for HPC environment
