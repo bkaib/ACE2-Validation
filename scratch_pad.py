@@ -115,18 +115,6 @@ print(ds)
 
 # %%
 
-# Functions
-def filter_ace2_dates(data, ace2_hours, current_date):
-    ace2_dates = current_date + pd.to_timedelta(ace2_hours, unit='h')
-    stacked = data.stack(ts=('time', 'step'))
-    stacked_filtered = stacked.where(stacked.valid_time.isin(ace2_dates), drop=True)
-    filtered_data = stacked_filtered.swap_dims({'ts': 'valid_time'}).drop_vars('ts')
-
-    ## Remove the time and steps & Rename valid_time to time
-    filtered_data = filtered_data.drop_vars(['time', 'step'], errors='ignore')
-    filtered_data = filtered_data.rename({'valid_time': 'time'})
-    return filtered_data
-
 # Constants
 yyyy = 2010
 daily_max_dataset = []
@@ -267,5 +255,34 @@ ds['10si_max'].mean(dim='time').plot(ax=ax, transform=ccrs.PlateCarree(), cmap='
 ax.coastlines()
 ax.set_title('Mean Daily Max Wind Speed for 2010')
 plt.show()  
+
+# %% Load the data of a full year into memory
+def preprocess_wind_speed(yyyy):
+
+    import glob
+
+    # Load u10 and v10 of given year in 1H res
+    u10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/165/E5sf00_1H_{yyyy}-*.grb")
+    v10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/166/E5sf00_1H_{yyyy}-*.grb")
+    u10 = xr.open_mfdataset(u10_files, engine='cfgrib')
+    v10 = xr.open_mfdataset(v10_files, engine='cfgrib')
+
+    # %%
+    # Filter the ace2 timestamps for that year
+    ace2_hours = [0, 6, 12, 18]
+    u10_mask = u10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
+    v10_mask = v10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
+    u10_filtered = u10.where(u10_mask, drop=True)
+    v10_filtered = v10.where(v10_mask, drop=True)
+
+    # Compute windspeed for the filtered ACE2 timesteps
+    w = (u10_filtered['u10']**2 + v10_filtered['v10']**2)**0.5
+
+    # Resample to daily max
+    w_daily_max = w.resample(time='1D').max()
+
+    # Save w_daily_max to NetCDF
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    w_daily_max.to_netcdf(output_path)
 
 # %%
