@@ -426,7 +426,7 @@ def preprocess_wind_speed(yyyy):
 
     # Save w_daily_max to NetCDF
     logger.info(f"Saving daily max wind speed to NetCDF for year {yyyy}...")
-    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
     w_daily_max.to_netcdf(output_path)
     logger.info(f"Saved daily max wind speed to {output_path}")
 
@@ -466,10 +466,12 @@ def main():
     years = range(1982, 2010 + 1)
     
     # Configure Dask for HPC environment
-    # With 240GB RAM, estimate ~8-10GB per year, so process 5-8 years in parallel
-    n_workers = 8  # Adjust based on memory usage observations
-    
-    dask_config.set(scheduler='threads', num_workers=n_workers)
+    # With 240GB RAM, estimate ~8-10GB per year
+    # 64 CPUs available: use 16 workers (4 CPUs per worker threads)
+    # This allows ~16 years processing in parallel safely
+    n_workers = 10  # Increase if memory permits; decrease if you hit memory limits
+
+    dask_config.set(scheduler='processes', num_workers=n_workers)
     logger.info(f"Starting parallel processing of {len(years)} years with {n_workers} workers")
     
     # Create delayed tasks
@@ -485,6 +487,6 @@ def main():
     logger.info(f"Processing complete: {len(successful)} successful, {len(failed)} failed")
     if failed:
         logger.warning(f"Failed years: {failed}")
-    
+
 if __name__ == "__main__":
     main()
