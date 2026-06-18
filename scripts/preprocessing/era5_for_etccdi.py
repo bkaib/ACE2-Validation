@@ -269,15 +269,18 @@ def preprocess_prate(
         # Step 1: Load data of the day
         logger.info(f"Processing {var} for {current_date.strftime('%Y-%m-%d')}")
         try:
+            # Load data with cfgrib engine for grb files, and default engine for nc files
             data = xr.open_dataset(
                 f"{path_prefix}{yyyy}-{mm}-{dd}_{PARAM}.{filetype}", 
                 engine='cfgrib' if filetype == "grb" else None
             )
+            logger.info(f"Content of the data: {data}")
         except Exception as e:
             logger.warning(f"Failed to load data for {current_date.strftime('%Y-%m-%d')}: {str(e)}. Skipping this date.")
             continue
         
         # Step2: Filter ACE2 timestamp
+        logger.info(f"Filtering ACE2 timestamps")
         ace2_dates = current_date + pd.to_timedelta(ace2_hours, unit='h')
         stacked = data.stack(ts=('time', 'step'))
         stacked_filtered = stacked.where(stacked.valid_time.isin(ace2_dates), drop=True)
@@ -286,6 +289,8 @@ def preprocess_prate(
         ## Remove the time and steps & Rename valid_time to time
         filtered_data = filtered_data.drop_vars(['time', 'step'], errors='ignore')
         filtered_data = filtered_data.rename({'valid_time': 'time'})
+        logger.info(f"Filtered data: {filtered_data}")
+
 
         # Step 3: Compute daily sum for the selected hours
         logger.info(f"Computing daily sum across ACE2 timestamps for the whole globe...")
@@ -357,6 +362,12 @@ def main():
     #-------------------------
     years = np.arange(1981, 2011).astype(str)
 
+    remapped_years = [1984, 1988, 1990, 1993, 2005, 2007, 2008,] # These years were already converted during a previous run.
+    remapped_years = [str(year) for year in remapped_years]
+    undone_years = np.setdiff1d(years, remapped_years)
+    years = undone_years
+    logger.info(f"Years to process: {years}")
+    
     # Configure Dask for Levante HPC environment
     n_workers = 10  # Limit to 10 workers instead of all available CPUs
     logger.info(f"Configured Dask to use {n_workers} workers")
