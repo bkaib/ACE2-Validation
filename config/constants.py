@@ -38,6 +38,14 @@ era5_params = {
         "filetype": "nc",
         "unit": "m/s",
         },
+    "U10": {
+        "PARAM": 131,
+        "1H": "/pool/data/ERA5/E5/pl/an/1H/131/E5pl00_1H_",
+    },
+    "V10": {
+        "PARAM": 132,
+        "1H": "/pool/data/ERA5/E5/pl/an/1H/132/E5pl00_1H_"
+    },
 }
 
 #-------------
