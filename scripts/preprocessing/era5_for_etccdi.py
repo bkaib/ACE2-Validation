@@ -466,15 +466,9 @@ def main():
     years = range(1982, 2010 + 1)
     
     # Configure Dask for HPC environment
-    # With 240GB RAM, estimate ~8-10GB per year
-    # 64 CPUs available: use 16 workers (4 CPUs per worker threads)
-    # This allows ~16 years processing in parallel safely
     n_workers = 10  # Increase if memory permits; decrease if you hit memory limits
-
     dask_config.set(scheduler='processes', num_workers=n_workers)
     logger.info(f"Starting parallel processing of {len(years)} years with {n_workers} workers")
-    
-    # Create delayed tasks
     delayed_tasks = [delayed(process_single_year)(yyyy) for yyyy in years]
     
     # Compute all tasks in parallel
