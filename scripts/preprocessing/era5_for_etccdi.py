@@ -25,6 +25,8 @@ import argparse
 import time
 from dask import delayed, compute, config as dask_config
 import os
+import gc  # Add garbage collection
+
 
 # %% Setup Parser
 def parse_arguments() -> argparse.Namespace:
@@ -429,6 +431,16 @@ def preprocess_wind_speed(yyyy):
     output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
     w_daily_max.to_netcdf(output_path)
     logger.info(f"Saved daily max wind speed to {output_path}")
+
+    # Free RAM
+    u10.close()
+    v10.close()
+    u10_filtered.close()
+    v10_filtered.close()
+    w.close()
+    w_daily_max.close()
+    del u10, v10, u10_filtered, v10_filtered, w, w_daily_max
+    gc.collect()
 
 def remap_with_cdo(yyyy):
     from cdo import Cdo
