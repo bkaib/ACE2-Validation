@@ -80,6 +80,42 @@ logger, queue_listener = setup_parallel_logger("era5_preprocessing", use_queue_l
 
 # %% Functions
 
+def preprocess_tmp2m_mfdata(yyyy):
+
+    import glob
+
+    # Load tmp2m of given year in 1H res
+    logger.info(f"Loading TMP2m data for year {yyyy}...")
+    tmp2m_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/167/E5sf00_1H_{yyyy}-*.grb")
+    tmp2m = xr.open_mfdataset(tmp2m_files, engine='cfgrib')
+
+    # Filter the ace2 timestamps for that year
+    logger.info(f"Filtering ACE2 timestamps for year {yyyy}...")
+    ace2_hours = [0, 6, 12, 18]
+    tmp2m_mask = tmp2m.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
+    tmp2m_filtered = tmp2m.where(tmp2m_mask, drop=True)
+
+    # Resample to daily min and max
+    logger.info(f"Resampling TMP2m to daily max for year {yyyy}...")
+    tmp2m_daily_max = tmp2m_filtered.resample(time='1D').max()
+    tmp2m_daily_min = tmp2m_filtered.resample(time='1D').min()
+
+    # Rename the variable to tasmax and tasmin to be consistent with the naming convention of the other datasets
+    tmp2m_daily_max = tmp2m_daily_max.rename('tasmax')
+    tmp2m_daily_min = tmp2m_daily_min.rename('tasmin')
+
+    # Convert to dataset
+    tmp2m_daily_max = tmp2m_daily_max.to_dataset(name='tasmax')
+    tmp2m_daily_min = tmp2m_daily_min.to_dataset(name='tasmin')
+
+    # Save TMP2m to NetCDF
+    logger.info(f"Saving daily max and min temperature to NetCDF for year {yyyy}...")
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/daily_max_{yyyy}_tmp.nc"
+    tmp2m_daily_max.to_netcdf(output_path)
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/TMP2m/daily_min_{yyyy}_tmp.nc"
+    tmp2m_daily_min.to_netcdf(output_path)
+    logger.info(f"Saved daily max and min temperature to {output_path}")
+
 def preprocess_tmp2m(
         yyyy,
         ace2_hours = [0, 6, 12, 18],
@@ -355,259 +391,100 @@ def remap_prate_with_cdo(yyyy):
         logger.error(f"Error during cleanup of original and remapped files for year {yyyy}: {e}", exc_info=True)
         raise
 
-def preprocess_wind(
-        yyyy,
-        ace2_hours = [0, 6, 12, 18],
-        ):
-    """Preprocesses the daily temperature for each year separately.
-    Applies the following steps
-    1. Load the ERA5 data of t2m from Levante.
-    2. Convert it from hourly resolution to 6H resolution as in ACE2
-    3. Compute the daily min and max across those timesteps globally
-    4. Convert the lon/lat coordinates to dimensions and remove unnecessary coordinates
-    5. Add the current max and min to a dataset that contains the daily min and max as separate variables with a time dimension
-    6. Concatenate all daily datasets along the time dimension to create a final dataset for the whole year
-    7. Save the final dataset to a NetCDF file.
-    """
+def preprocess_wind_speed(yyyy):
 
-    # Constants
-    daily_max_dataset = []
-    u_var = "U10"
-    v_var = "V10"
-    u_path_prefix = constants.era5_params[u_var]["1H"]
-    v_path_prefix = constants.era5_params[v_var]["1H"]
-    u_PARAM = constants.era5_params[u_var]["PARAM"]
-    v_PARAM = constants.era5_params[v_var]["PARAM"]
-    filetype = "grb"
+    import glob
 
-    date_range = pd.date_range(start=f"{yyyy}-01-01", end=f"{yyyy}-12-31", freq="D")
-    for current_date in date_range:
-        yyyy = yyyy
-        mm = f"{current_date.month:02d}"
-        dd = f"{current_date.day:02d}"
+    # Load u10 and v10 of given year in 1H res
+    logger.info(f"Loading U10 and V10 data for year {yyyy}...")
+    u10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/165/E5sf00_1H_{yyyy}-*.grb")
+    v10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/166/E5sf00_1H_{yyyy}-*.grb")
+    u10 = xr.open_mfdataset(u10_files, engine='cfgrib')
+    v10 = xr.open_mfdataset(v10_files, engine='cfgrib')
 
-        # Step 1: Load the U and V Components of the Current Day
-        logger.info(f"Processing Wind Speed for {current_date.strftime('%Y-%m-%d')}")
-        try:
-            # Load data with cfgrib engine for grb files, and default engine for nc files
-            u10 = xr.open_dataset(
-                f"{u_path_prefix}{yyyy}-{mm}-{dd}_{u_PARAM}.{filetype}", 
-                engine='cfgrib' if filetype == "grb" else None
-            )
-            v10 = xr.open_dataset(
-                f"{v_path_prefix}{yyyy}-{mm}-{dd}_{v_PARAM}.{filetype}", 
-                engine='cfgrib' if filetype == "grb" else None
-            )
-            
-            logger.info(f"Content of U10 data: {u10}")
-            logger.info(f"Content of V10 data: {v10}")
-        except Exception as e:
-            logger.error(f"Failed to load data for {current_date.strftime('%Y-%m-%d')}: {str(e)}. Skipping this date.")
-            continue
+    # Filter the ace2 timestamps for that year
+    logger.info(f"Filtering ACE2 timestamps for year {yyyy}...")
+    ace2_hours = [0, 6, 12, 18]
+    u10_mask = u10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
+    v10_mask = v10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
+    u10_filtered = u10.where(u10_mask, drop=True)
+    v10_filtered = v10.where(v10_mask, drop=True)
 
-        # Step 2: Select only the ACE2 Timestamps
-        logger.info(f"Filtering ACE2 timestamps")
-        u10_filtered = u10.where(
-                u10.valid_time.dt.hour.isin(ace2_hours), drop=True
-            )
-        v10_filtered = v10.where(
-                v10.valid_time.dt.hour.isin(ace2_hours), drop=True
-            )
-        logger.info(f"Filtered U10 data: {u10_filtered}")
-        logger.info(f"Filtered V10 data: {v10_filtered}")
+    # Compute windspeed for the filtered ACE2 timesteps
+    logger.info(f"Computing wind speed for the filtered ACE2 timesteps for year {yyyy}...")
+    w = (u10_filtered['u10']**2 + v10_filtered['v10']**2)**0.5
 
-        ## Check if the values dimension of u10 and v10 have the same longitude and latitude coordinates
-        if not (u10_filtered.longitude.equals(v10_filtered.longitude) and u10_filtered.latitude.equals(v10_filtered.latitude)):
-            logger.error(f"Longitude and latitude coordinates of U10 and V10 do not match for {current_date.strftime('%Y-%m-%d')}. Skipping this date.")
-            continue
-        
-        # Step 3: Calculate the Wind Speed from U and V Components at Each ACE2 Timestamp using xarray
-        w = u10_filtered['u10']**2 + v10_filtered['v10']**2
-        w = w**0.5
-        logger.info(f"Calculated wind speed dataarray: {w}")
+    # Resample to daily max
+    logger.info(f"Resampling wind speed to daily max for year {yyyy}...")
+    w_daily_max = w.resample(time='1D').max()
 
-        # Step 4: Resample the 6H Timesteps to 1D by Taking the Daily Maximum Wind Speed
-        logger.info(f"Resampling wind speed data to daily maximum for {current_date.strftime('%Y-%m-%d')}...")
-        daily_max_w = w.resample(time='1D').max()
-        logger.info(f"Resampled daily maximum wind speed data: {daily_max_w}")
+    # Rename the variable to 10si_max to be consistent with the naming convention of the other datasets
+    w_daily_max = w_daily_max.rename('10si_max')
 
-        # Step 5: Add the Daily Maximum Wind Speed to a Dataset with Time Dimension
-        logger.info(f"Creating dataset for daily max wind speed and adding to list...")
-        max_ds = xr.Dataset({'10si_max': daily_max_w})
-        daily_max_dataset.append(max_ds)
-        logger.info(f"Created dataset: {max_ds}")
+    # Convert to dataset
+    w_daily_max = w_daily_max.to_dataset(name='10si_max')
 
-    # Concatenate all days into one ds
-    logger.info(f"Concatenating all daily datasets for year {yyyy} along time dimension...")
-    daily_max_ds = xr.concat(daily_max_dataset, dim="time")
-    logger.info(f"Concatenated dataset: {daily_max_ds}")
+    # Save w_daily_max to NetCDF
+    logger.info(f"Saving daily max wind speed to NetCDF for year {yyyy}...")
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    w_daily_max.to_netcdf(output_path)
+    logger.info(f"Saved daily max wind speed to {output_path}")
 
-    # Step 6: Save the final dataset to a NetCDF file
-    logger.info(f"Saving the final dataset to NetCDF files...")
-    folder = f"data/processed/era5/1D/10si/"
-    Path(folder).mkdir(parents=True, exist_ok=True)
-    logger.info(f"Created folder {folder} for saving NetCDF files if it did not exist")
-
-    file_sum = f"{folder}daily_max_{yyyy}.nc"
-    daily_max_ds.to_netcdf(file_sum)
-    logger.info(f"Saved daily max dataset to {file_sum}")
-
-def remap_wind_with_cdo(yyyy):
+def remap_with_cdo(yyyy):
     from cdo import Cdo
-    logger.info(f"Starting CDO remapping of the preprocessed WIND SPEED data")
     cdo = Cdo()
     target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
-    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
-    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/remapped_daily_max_{yyyy}.nc" # Temporary output file for remapped data
+    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/remapped_daily_max_{yyyy}_tmp.nc" # Temporary output file for remapped data
 
-    # Remap Max
-    try:
-        logger.info(f"Remapping daily max for year {yyyy} with CDO...")
-        cdo.remapnn(
+    logger.info(f"Remapping daily max for year {yyyy} with CDO...")
+    cdo.remapnn(
             target_grid_file, 
             input=input_file_sum, 
             output=temp_output_file_sum,
             options='-f nc', # Convert to netCDF
         )
-        logger.info(f"Successfully remapped {input_file_sum} to {temp_output_file_sum}")
-
-    except Exception as e:
-        logger.error(f"Error during CDO remapping of {input_file_sum}: {e}", exc_info=True)
-        raise
-
-    # Delete original files after remapping & rename remapped files to original file names
-    try:
-        os.remove(input_file_sum)
-        os.rename(temp_output_file_sum, input_file_sum)
-        logger.info(f"Replaced original file {input_file_sum} with remapped file {temp_output_file_sum}")
-
-    except Exception as e:
-        logger.error(f"Error during cleanup of original and remapped files for year {yyyy}: {e}", exc_info=True)
-        raise
+    
+    logger.info(f"Replacing original file {input_file_sum} with remapped file {temp_output_file_sum}...")
+    os.remove(input_file_sum)
+    os.rename(temp_output_file_sum, input_file_sum)
 
 # %% Main
-def main():
-    #-------------------------
-    # Constants
-    #-------------------------
-    years = np.arange(1981, 2011).astype(str)
-
-    # remapped_years = [1984, 1988, 1990, 1993, 2005, 2007, 2008,] # These years were already converted during a previous run.
-    # remapped_years = [str(year) for year in remapped_years]
-    # undone_years = np.setdiff1d(years, remapped_years)
-    # years = undone_years
-    logger.info(f"Years to process: {years}")
-    
-    # Configure Dask for Levante HPC environment
-    n_workers = 20  # Limit to 10 workers instead of all available CPUs
-    logger.info(f"Configured Dask to use {n_workers} workers")
-    
-    # Configure Dask to use threads scheduler (good for I/O-bound tasks like file reading)
-    dask_config.set(scheduler='threads', num_workers=n_workers)
-    logger.info(f"Configured Dask with threads scheduler and {n_workers} workers")
-
-    # #-------------------------
-    # # TEMPERATURE
-    # #-------------------------
-
-    # # Preprocess Temperature with Dask parallelization
-    # #-------------------------
-    # start_time_tmp2m = time.time()
-    # logger.info(f"Start preprocessing of TMP2m with Dask parallelization")
-    # logger.info(f"Processing {len(years)} years in parallel")
-    
-    # ## Create delayed tasks for each year
-    # delayed_tasks = [delayed(preprocess_tmp2m)(yyyy) for yyyy in years]
-    # logger.info(f"Created {len(delayed_tasks)} delayed tasks for years {years[0]}-{years[-1]}")
-    
-    # ## Execute all tasks in parallel
-    # try:
-    #     compute(*delayed_tasks)
-    #     logger.info(f"Successfully completed all {len(delayed_tasks)} tasks")
-    # except Exception as e:
-    #     logger.error(f"Error during Dask computation: {e}", exc_info=True)
-    #     raise
-    
-    # elapsed = time.time() - start_time_tmp2m
-    # logger.info(f"Preprocessing of TMP2m completed in {elapsed:.2f} seconds")
-
-    # # Remap the Temperature data with CDO
-    # #-------------------------
-    # for yyyy in years:
-    #     logger.info(f"Remapping daily temperature for year {yyyy} with CDO...")
-    #     remap_temperature_with_cdo(yyyy)
-    
-    #-------------------------
-    # PRECIPITATION
-    #-------------------------
-
-    # # Preprocess Precipitation with Dask parallelization
-    # #-------------------------
-    # start_time = time.time()
-    # logger.info(f"Start preprocessing of PRATE with Dask parallelization")
-    # logger.info(f"Processing {len(years)} years in parallel")
-    
-    # ## Create delayed tasks for each year
-    # delayed_tasks = [delayed(preprocess_prate)(yyyy) for yyyy in years]
-    # logger.info(f"Created {len(delayed_tasks)} delayed tasks for years {years[0]}-{years[-1]}")
-    
-    # ## Execute all tasks in parallel
-    # try:
-    #     compute(*delayed_tasks)
-    #     logger.info(f"Successfully completed all {len(delayed_tasks)} tasks")
-    # except Exception as e:
-    #     logger.error(f"Error during Dask computation: {e}", exc_info=True)
-    #     raise
-    
-    # elapsed = time.time() - start_time
-    # logger.info(f"Preprocessing of PRATE completed in {elapsed:.2f} seconds")
-
-    # # Remap the Precipitation data with CDO
-    # #-------------------------
-    # for yyyy in years:
-    #     logger.info(f"Remapping daily precipitation for year {yyyy} with CDO...")
-    #     remap_prate_with_cdo(yyyy)
-
-
-    #--------------------------------------
-    # WIND SPEED
-    #--------------------------------------
-
-    # # Preprocess Wind Speed with Dask parallelization
-    # #-------------------------
-    start_time = time.time()
-    logger.info(f"Start preprocessing of WIND with Dask parallelization")
-    logger.info(f"Processing {len(years)} years in parallel")
-    
-    ## Create delayed tasks for each year
-    delayed_tasks = [delayed(preprocess_wind)(yyyy) for yyyy in years]
-    logger.info(f"Created {len(delayed_tasks)} delayed tasks for years {years[0]}-{years[-1]}")
-    
-    ## Execute all tasks in parallel
+def process_single_year(yyyy):
+    """Process a single year - wraps preprocess and remap."""
     try:
-        compute(*delayed_tasks)
-        logger.info(f"Successfully completed all {len(delayed_tasks)} tasks")
+        logger.info(f"Starting processing for year {yyyy}")
+        preprocess_wind_speed(yyyy)
+        remap_with_cdo(yyyy)
+        logger.info(f"Successfully completed processing for year {yyyy}")
+        return yyyy, True
     except Exception as e:
-        logger.error(f"Error during Dask computation: {e}", exc_info=True)
-        raise
-    
-    elapsed = time.time() - start_time
-    logger.info(f"Preprocessing of WIND completed in {elapsed:.2f} seconds")
+        logger.error(f"Failed processing year {yyyy}: {e}", exc_info=True)
+        return yyyy, False
 
-    # Remap the Wind Speed data with CDO
-    #-------------------------
-    for yyyy in years:
-        logger.info(f"Remapping daily wind speed for year {yyyy} with CDO...")
-        remap_wind_with_cdo(yyyy)
-
+def main():
+    years = range(1982, 2010 + 1)
     
-    # Computation time
+    # Configure Dask for HPC environment
+    # With 240GB RAM, estimate ~8-10GB per year, so process 5-8 years in parallel
+    n_workers = 8  # Adjust based on memory usage observations
     
-    # Clean up logging queue listener
-    if queue_listener is not None:
-        logger.info("Shutting down logging queue listener...")
-        queue_listener.stop()
-        logger.info("Logging queue listener stopped successfully")
+    dask_config.set(scheduler='threads', num_workers=n_workers)
+    logger.info(f"Starting parallel processing of {len(years)} years with {n_workers} workers")
+    
+    # Create delayed tasks
+    delayed_tasks = [delayed(process_single_year)(yyyy) for yyyy in years]
+    
+    # Compute all tasks in parallel
+    results = compute(*delayed_tasks)
+    
+    # Report results
+    successful = [year for year, success in results if success]
+    failed = [year for year, success in results if not success]
+    
+    logger.info(f"Processing complete: {len(successful)} successful, {len(failed)} failed")
+    if failed:
+        logger.warning(f"Failed years: {failed}")
     
 if __name__ == "__main__":
     main()

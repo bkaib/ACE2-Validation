@@ -257,18 +257,20 @@ ax.set_title('Mean Daily Max Wind Speed for 2010')
 plt.show()  
 
 # %% Load the data of a full year into memory
+
 def preprocess_wind_speed(yyyy):
 
     import glob
 
     # Load u10 and v10 of given year in 1H res
+    print(f"Loading U10 and V10 data for year {yyyy}...")
     u10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/165/E5sf00_1H_{yyyy}-*.grb")
     v10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/166/E5sf00_1H_{yyyy}-*.grb")
     u10 = xr.open_mfdataset(u10_files, engine='cfgrib')
     v10 = xr.open_mfdataset(v10_files, engine='cfgrib')
 
-    # %%
     # Filter the ace2 timestamps for that year
+    print(f"Filtering ACE2 timestamps for year {yyyy}...")
     ace2_hours = [0, 6, 12, 18]
     u10_mask = u10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
     v10_mask = v10.valid_time.dt.hour.isin(ace2_hours).compute()  # Compute the boolean mask to avoid lazy evaluation issues
@@ -276,13 +278,45 @@ def preprocess_wind_speed(yyyy):
     v10_filtered = v10.where(v10_mask, drop=True)
 
     # Compute windspeed for the filtered ACE2 timesteps
+    print(f"Computing wind speed for the filtered ACE2 timesteps for year {yyyy}...")
     w = (u10_filtered['u10']**2 + v10_filtered['v10']**2)**0.5
 
     # Resample to daily max
+    print(f"Resampling wind speed to daily max for year {yyyy}...")
     w_daily_max = w.resample(time='1D').max()
 
-    # Save w_daily_max to NetCDF
-    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
-    w_daily_max.to_netcdf(output_path)
+    # Rename the variable to 10si_max to be consistent with the naming convention of the other datasets
+    w_daily_max = w_daily_max.rename('10si_max')
 
-# %%
+    # Convert to dataset
+    w_daily_max = w_daily_max.to_dataset(name='10si_max')
+
+    # # Save w_daily_max to NetCDF
+    # print(f"Saving daily max wind speed to NetCDF for year {yyyy}...")
+    # output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    # w_daily_max.to_netcdf(output_path)
+    # print(f"Saved daily max wind speed to {output_path}")
+
+def remap_with_cdo(yyyy):
+    from cdo import Cdo
+    cdo = Cdo()
+    target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
+    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
+    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/remapped_daily_max_{yyyy}_tmp.nc" # Temporary output file for remapped data
+
+    print(f"Remapping daily max for year {yyyy} with CDO...")
+    cdo.remapnn(
+            target_grid_file, 
+            input=input_file_sum, 
+            output=temp_output_file_sum,
+            options='-f nc', # Convert to netCDF
+        )
+    
+    print(f"Replacing original file {input_file_sum} with remapped file {temp_output_file_sum}...")
+    os.remove(input_file_sum)
+    os.rename(temp_output_file_sum, input_file_sum)
+
+for yyyy in range(1981, 2010 + 1):
+    preprocess_wind_speed(yyyy)
+    # remap_with_cdo(yyyy)
+    break
