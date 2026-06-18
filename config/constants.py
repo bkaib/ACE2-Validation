@@ -39,12 +39,12 @@ era5_params = {
         "unit": "m/s",
         },
     "U10": {
-        "PARAM": 131,
-        "1H": "/pool/data/ERA5/E5/pl/an/1H/131/E5pl00_1H_",
+        "PARAM": 165,
+        "1H": "/pool/data/ERA5/E5/sf/an/1H/165/E5sf00_1H_",
     },
     "V10": {
-        "PARAM": 132,
-        "1H": "/pool/data/ERA5/E5/pl/an/1H/132/E5pl00_1H_"
+        "PARAM": 166,
+        "1H": "/pool/data/ERA5/E5/sf/an/1H/166/E5sf00_1H_"
     },
 }
 
