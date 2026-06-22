@@ -19,9 +19,9 @@ ETCCDI indices are the standard framework for characterising the frequency, inte
 | Precipitation | Rx1day | Annual maximum 1-day precipitation |
 | Precipitation | CWD | Maximum annual consecutive wet days |
 | Wind (ext.) | FG95p | The count of days where daily mean wind speed exceeds the 95th percentile. This validates the "frequency" of high-wind events. |
-| Wind (ext.) | FXx | Maximum value of daily maximum wind gust (m/s).
+| Wind (ext.) | FXx | Maximum value of daily maximum wind speed (m/s).
 
-Let $FX_{ij}$ be the daily maximum wind gust on day $i$ of period $j$. Then the maximum daily maximum wind gust for period $j$ is 
+Let $FX_{ij}$ be the daily maximum wind speed on day $i$ of period $j$. Then the maximum daily maximum wind speed for period $j$ is 
 $$
 FXx_j = max(FX_{ij})
 $$ |
@@ -29,7 +29,7 @@ $$ |
 
 ## Steps
 
-- [ ] Preprocess ERA5 data similar to ACE2 (e.g. resample to 6H then daily, compute daily max/min/mean as needed, ensure consistent units)
+- [x] Preprocess ERA5 data similar to ACE2 (e.g. resample to 6H then daily, compute daily max/min/mean as needed, ensure consistent units)
 - [ ] Define percentile baselines (ERA5 1981–2010 (30y) climatological period for relative indices)
 - [ ] Compute all indices from processed ERA5 (`data/processed/ERA5/`)
 - [ ] Compute all indices for each ACE2 ensemble member based on ERA5 thresholds (`data/processed/ACE2/`)

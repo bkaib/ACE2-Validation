@@ -7,7 +7,9 @@
 
 ---
 
-# ERA5
+# Datasets & Preprocessing for ETCCDI Computation
+
+## ERA5
 
 **Selected Period:** 1981-2010 (30 years)
 
@@ -20,8 +22,35 @@ We use the following variables of ERA5 to compute the ETCCDI indices:
 | tp       | 228 | Total precipitation | R10, Rx1day, CWD |
 | 10si     | 207 | 10m wind speed | FG95p, FXx, WSD
 
+**Preprocessing Steps of 1H ERA5 Data:**
 
-# ACE2
+- ERA5 data on Levante was given in 1H resolution but we need 1D.
+- Adjust ERA5 to 6H resolution as in ACE2 (00:00, 06:00, 12:00, 18:00).
+- Aggregate to 1D resolution depending on the ETCCDI index requirements (e.g., daily min/max for temperature & wind speed, daily sum for precipitation).
+- Regrid from the reduced Gaussian Grid (ERA5 is stored on that grid on Levnate) to the 0.25° target grid of ERA5.
+
+We computed the wind speed from the u10 and v10 components of the wind using the following formula:
+
+```wind_speed = sqrt(u10^2 + v10^2)
+```
+
+for the 6H  temporal resolution of ACE2. We then aggregate the 6H wind speed to daily mean and daily max for the corresponding ETCCDI indices.
+
+**Scripts:**
+- `scripts/02-compute-etccdi/era5_for_etccdi.py` : preprocessing and remapping of the ERA5 data to 1D and the ERA5 target grid for ETCCDI computation.
+
+**Final Datasets:** 
+
+Temporal resolution: 1D in 1981-2010 (30 years)
+Spatial resolution: global 0.25° x 0.25°
+Format: netCDF
+
+Folder:
+- ERA5 Temperature: `data/raw/ERA5/1D/TMP2m/`
+- ERA5 Precipitation: `data/raw/ERA5/1D/PRATEsfc/`
+- ERA5 Wind Speed: `data/raw/ERA5/1D/10si/`
+
+## ACE2
 
 We use the ACE2 ensembles from milestone 01. 
 
@@ -29,10 +58,6 @@ We use the ACE2 ensembles from milestone 01.
 
 The ETCCDIs are based on aggregated daily data, where the method of aggregation depends on the index.
 Hence, we aggregate the 6H data of ACE2 to daily data using the following aggregations to account for the corresponding ETCCDIs
-
-```
-scripts/preprocessing/get_daily_ace2.py
-```
 
 - TMP2m
 	- tasmax
@@ -42,6 +67,18 @@ scripts/preprocessing/get_daily_ace2.py
 - 10m Wind Speed
 	- sfcWind_mean
 	- sfcWind_max
+
+**Scripts:**
+
+```
+scripts/02-compute-etccdi/get_daily_ace2.py
+```
+
+**Final Datasets:*
+
+- `data/raw/ace2-ensembles/1D/{scenario}/ensemble_{N}.nc` : daily aggregated ACE2 data for each ensemble member and scenario, ready for ETCCDI computation. Each ensembles contains the variables; tasmax, tasmin, pr (summed), sfcWind_mean, sfcWind_max.
+
+
 
 
 # Quick Notes
