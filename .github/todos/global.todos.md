@@ -21,9 +21,8 @@ Indendation indicates sub-tasks. Use the following format for each task:
 
 | Milestone | Status | Owner Agent(s) | Description |
 |-----------|--------|----------------|-------------|
-| `01-generate-ace2-simulations` | 🟡 In progress | modeler | Generate ACE2 Simulations for validation period. |
-| `02-preprocess-data` | 🔴 Not started | data-engineer | Preprocess and prepare input data. |
-| `03-compute-etccdi-indices` | 🔴 Not started | analyst | Compute ETCCDI extreme climate indices. |
+| `01-generate-ace2-simulations` | 🟢 Complete | modeler | Generate ACE2 Simulations for validation period. |
+| `02-compute-etccdi` | 🟡 In progress | analyst | Compute ETCCDI extreme climate indices. |
 | `04-etccdi-validation` | 🔴 Not started | analyst | Validate computed ETCCDI indices. |
 | `05-extreme-value-analysis` | 🔴 Not started | analyst | Perform extreme value analysis. |
 | `06-wind-extremes` | 🔴 Not started | analyst | Analyze wind extremes. |
@@ -34,19 +33,18 @@ Indendation indicates sub-tasks. Use the following format for each task:
 
 # Active Tasks
 
-## Milestone 1 - Generate ACE2 Simulations
-
-- **Status**: 🟡 In progress
-- [ ] **[HIGH]** Document the validation of ace2 simulation output — milestone: `milestone1` — added: 2024-06-01
-    
-
 ## Milestone 2 - Compute ETCCDI Indices
 
-- [ ] **[HIGH]** Collect relevant data of ERA5 to compute ETCCDIs #phd ⏫  — milestone: `milestone1` — added: 2024-06-01
+- [ ] **HIGH** Update the methodology for the computation of ETCCDIs (see milestones/02-compute-etccdi.md) — milestone: `02-compute-etccdi` — added: 2024-06-01
+
+
 
 ## Backlog
 
 ## Completed
+- [x] **[HIGH]** Document the validation of ace2 simulation output — milestone: `milestone1` — added: 2024-06-01
+    
+- [x] **[HIGH]** Collect relevant data of ERA5 to compute ETCCDIs #phd ⏫  — milestone: `milestone2` — added: 2024-06-01
 - [x] **[HIGH]** ~~Validate the ace2 simulation output — milestone: `milestone1` — added: 2024-06-01~~
 - [x] **[HIGH]** Compute the ACE2-Windspeed based on UGRD10m and VGRD10m — milestone: `milestone1` — added: 2024-06-01
 - [x] **[HIGH / Running]** Extract the period 2001-2010 from each simulation — milestone: `milestone1` — added: 2024-06-01
