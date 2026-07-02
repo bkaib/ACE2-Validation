@@ -30,6 +30,7 @@ $$ |
 ## Steps
 
 - [x] Preprocess ERA5 data similar to ACE2 (e.g. resample to 6H then daily, compute daily max/min/mean as needed, ensure consistent units)
+- [x] Regrid ERA5 to the ACE2 grid with conservative remapping from xesmf
 - [ ] Define percentile baselines (ERA5 1981–2010 (30y) climatological period for relative indices)
 - [ ] Compute all indices from processed ERA5 (`data/processed/ERA5/`)
 - [ ] Compute all indices for each ACE2 ensemble member based on ERA5 thresholds (`data/processed/ACE2/`)

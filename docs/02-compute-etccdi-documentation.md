@@ -41,14 +41,23 @@ for the 6H  temporal resolution of ACE2. We then aggregate the 6H wind speed to 
 
 **Final Datasets:** 
 
-Temporal resolution: 1D in 1981-2010 (30 years)
-Spatial resolution: global 0.25° x 0.25°
-Format: netCDF
+1. 1D ERA5 data on ERA5 grid:
+- Temporal resolution: 1D in 1981-2010 (30 years)
+- Spatial resolution: global 0.25° x 0.25°
+- Format: netCDF
+- Folder:
+	- ERA5 Temperature: `data/raw/ERA5/1D/TMP2m/`
+	- ERA5 Precipitation: `data/raw/ERA5/1D/PRATEsfc/`
+	- ERA5 Wind Speed: `data/raw/ERA5/1D/10si/`
 
-Folder:
-- ERA5 Temperature: `data/raw/ERA5/1D/TMP2m/`
-- ERA5 Precipitation: `data/raw/ERA5/1D/PRATEsfc/`
-- ERA5 Wind Speed: `data/raw/ERA5/1D/10si/`
+2. 1D ERA5 data on ACE2 grid:
+- Temporal resolution: 1D in 1981-2010 (30 years)
+- Spatial resolution: ACE2 grid (1° x 1°)
+- Format: netCDF
+- Folder:
+	- ERA5 Temperature: `data/processed/ERA5/1D/ACE2GRID/TMP2m/`
+	- ERA5 Precipitation: `data/processed/ERA5/1D/ACE2GRID/PRATEsfc/`
+	- ERA5 Wind Speed: `data/processed/ERA5/1D/ACE2GRID/10si/`
 
 ## ACE2
 
@@ -79,9 +88,9 @@ scripts/02-compute-etccdi/get_daily_ace2.py
 - `data/raw/ace2-ensembles/1D/{scenario}/ensemble_{N}.nc` : daily aggregated ACE2 data for each ensemble member and scenario, ready for ETCCDI computation. Each ensembles contains the variables; tasmax, tasmin, pr (summed), sfcWind_mean, sfcWind_max.
 
 
-
-
 # Quick Notes
+
+
 
 ## 29.05.2026
 

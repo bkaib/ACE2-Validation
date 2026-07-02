@@ -13,12 +13,20 @@ import importlib
 importlib.reload(constants)
 from pathlib import Path
 import os
+import glob
 
 
-#%% Check regridded data
+# %% 
+
+
+ds = xr.open_dataset("/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ace2-ensembles/1D/2000v1940/ensemble_0.nc")
+ds
 
 #%% Look at 10si
-variables = ["10si", "TMP2m", "PRATEsfc"]
+variables = ["10si", 
+             #"TMP2m", 
+             # "PRATEsfc",
+             ]
 PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation"
 projection = ccrs.EqualEarth()
 # Compare the regridded and original data for each variable 
@@ -27,6 +35,9 @@ fig, axes = plt.subplots(
     nrows=len(variables), ncols=2, figsize=(15, 5), 
     subplot_kw={'projection': projection}
     )
+var_names = dict(
+    "10si": "10si_max"
+)
 for i, variable in enumerate(variables):
     BASE_INPUT_REGRID = Path(PROJECT_ROOT) / "data/processed/ERA5/1D/ACE2GRID"
     BASE_INPUT_ORIG = Path(PROJECT_ROOT) / "data/raw/ERA5/1D/"
