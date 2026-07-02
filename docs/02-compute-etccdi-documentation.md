@@ -87,6 +87,28 @@ scripts/02-compute-etccdi/get_daily_ace2.py
 
 - `data/raw/ace2-ensembles/1D/{scenario}/ensemble_{N}.nc` : daily aggregated ACE2 data for each ensemble member and scenario, ready for ETCCDI computation. Each ensembles contains the variables; tasmax, tasmin, pr (summed), sfcWind_mean, sfcWind_max.
 
+## A Comment on the Units of ACE2 and ERA5
+
+**ACE2 `PRATEsfc` (kg/m²/s) → Daily total (kg/m²)**
+**ERA5** `tp` given in **m**.
+
+Summing both over time leads to
+
+**ACE2:**
+- ACE2 has a 6H temporal resolution. At each timestep we have a precipitation rate in $kg/m^2/s$. We assume that each timestamp accounts for $\Delta t = 6h = 21600s$. 
+- Hence we need to multiply the accumulated precipitation rate for each day with $21600s$ to convert the units from $kg/m^2/s$ to $kg/m^2$. 
+- Given the density of water $\rho = 1000kg/m^3$ the unit of $1 kg/m^2 = 1 mm$ of water depth. 
+**ERA5:**
+- **Sum of m over time** = m
+
+So for ETCCDI compatibility:
+
+| Data            | Raw Unit | After Summation | Convert to mm    |
+| --------------- | -------- | --------------- | ---------------- |
+| ERA5 `tp`       | m        | m               | multiply by 1000 |
+| ACE2 `PRATEsfc` | kg/m²/s  | kg/m²           | already ≈ mm     |
+
+
 
 # Quick Notes
 
