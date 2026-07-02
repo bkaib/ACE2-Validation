@@ -442,12 +442,13 @@ def preprocess_wind_speed(yyyy):
     del u10, v10, u10_filtered, v10_filtered, w, w_daily_max
     gc.collect()
 
-def remap_with_cdo(yyyy):
+def remap_10si_with_cdo(yyyy):
     from cdo import Cdo
     cdo = Cdo()
+    folder = "/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/10si/"
     target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
-    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}_tmp.nc"
-    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/remapped_daily_max_{yyyy}_tmp.nc" # Temporary output file for remapped data
+    input_file_sum = f"{folder}daily_max_{yyyy}.nc"
+    temp_output_file_sum = f"{folder}remapped_daily_max_{yyyy}_tmp.nc" # Temporary output file for remapped data
 
     logger.info(f"Remapping daily max for year {yyyy} with CDO...")
     cdo.remapnn(
@@ -466,8 +467,8 @@ def process_single_year(yyyy):
     """Process a single year - wraps preprocess and remap."""
     try:
         logger.info(f"Starting processing for year {yyyy}")
-        preprocess_wind_speed(yyyy)
-        remap_with_cdo(yyyy)
+        #preprocess_wind_speed(yyyy)
+        remap_10si_with_cdo(yyyy)
         logger.info(f"Successfully completed processing for year {yyyy}")
         return yyyy, True
     except Exception as e:
@@ -477,7 +478,7 @@ def process_single_year(yyyy):
 def main():
     # TODO: The preprocessing functions of tmp2m and prate need to be adjusted to the idea of the preprocessing of windspeed.
     # e.g. loading all files of one year at once and then computing to maximize RAM.
-    years = range(1982, 2010 + 1)
+    years = range(1981, 2010 + 1)
     
     # Configure Dask for HPC environment
     n_workers = 10  # Increase if memory permits; decrease if you hit memory limits

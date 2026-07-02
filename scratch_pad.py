@@ -14,6 +14,17 @@ importlib.reload(constants)
 from pathlib import Path
 import os
 
+#%% Look at 10si
+variable = "10si"
+PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation"
+BASE_INPUT = Path(PROJECT_ROOT) / "data/raw/ERA5/1D"
+input_path = BASE_INPUT / variable
+files = list(input_path.glob("*.nc"))
+
+wrong_files = []
+for file in files:
+    ds = xr.open_dataset(file)
+
 # %% Visualize yearly max windspeed
 yyyy = 1981
 p = f"data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
