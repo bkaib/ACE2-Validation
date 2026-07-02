@@ -18,9 +18,46 @@ import glob
 
 # %% 
 
+indices = [
+    "TXx", "TNn", 
+    "Rx1day", "R10", 
+    #"CWD", 
+    "FXx"]
 
-ds = xr.open_dataset("/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ace2-ensembles/1D/2000v1940/ensemble_0.nc")
-ds
+vmin_vmax_ranges = dict(
+    TXx=(250, 320),
+    TNn=(250, 320),
+    Rx1day=(0, 30),
+    R10=(0, 50),
+    CWD=(0, 200),
+    FXx=(0, 25),
+)
+
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 10), subplot_kw={'projection': ccrs.EqualEarth()})
+
+for i, idx in enumerate(indices):
+    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
+
+    # Visualize index on global map with equal earth projection
+    projection = ccrs.EqualEarth()
+    ax = axes.flatten()[i]
+    (ds[idx]
+     .mean(dim="time")
+     .plot(
+         ax=ax, 
+         transform=ccrs.PlateCarree(), 
+         cmap='viridis',
+        vmin=vmin_vmax_ranges[idx][0],
+        vmax=vmin_vmax_ranges[idx][1],
+         )
+     )
+    ax.coastlines()
+    ax.gridlines()
+    ax.set_title(f"{idx} Index")
+fig.suptitle("ERA5 ETCCDI Indices | Temporal Mean over 1981-2010", fontsize=16)
+plt.show()
+
+
 
 #%% Look at 10si
 variables = ["10si", 
