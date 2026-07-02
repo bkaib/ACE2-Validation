@@ -109,10 +109,47 @@ So for ETCCDI compatibility:
 | ACE2 `PRATEsfc` | kg/m²/s  | kg/m²           | already ≈ mm     |
 
 
-
 # Quick Notes
 
+## 02.07.2026
 
+**Planning: ETCCDI Computation Strategy**
+
+Created comprehensive plan for computing ETCCDI indices for both ERA5 (1981-2010) and ACE2 ensembles (2001-2010).
+
+**Key Decisions:**
+- **Library**: xclim (v≥0.47) — modern xarray-based library with full WMO ETCCDI support, optimized for HPC with dask
+- **Percentile method**: WMO bootstrap method (Zhang et al. 2005) with day-of-year specific percentiles (365 thresholds per grid cell) using 5-day centered window
+- **Baseline period**: ERA5 1981-2010 for computing percentile thresholds
+- **Output frequency**: Annual aggregation for all indices
+- **Ensemble processing**: Compute indices per-member, then calculate ensemble statistics (mean, std, 5th-95th percentile)
+
+**Index Categories:**
+- **Absolute**: TXx, TNn, Rx1day, FXx — no threshold required
+- **Relative**: TX90p, TN10p, FG95p, WSDI, R10, CWD — use ERA5 percentile thresholds
+
+**Critical Unit Conversion:**
+- ACE2 PRATEsfc: kg/m²/s (6H rate) → must multiply by 21600s (6H) to get daily total in kg/m² ≈ mm
+- ERA5 tp: m → multiply by 1000 to get mm
+
+**WSD (Wind Spell Duration) Definition:**
+- Non-standard index analogous to WSDI (Warm Spell Duration Index)
+- Threshold: 95th percentile of daily mean wind speed from ERA5 baseline
+- Counts consecutive days (≥6) with sfcWind_mean > threshold
+
+**Thresholds to be saved:**
+- TN_p10_doy.nc, TX_p10_doy.nc — for TN10p, CSDI
+- TN_p90_doy.nc, TX_p90_doy.nc — for TX90p, WSDI
+- sfcWind_p95_doy.nc — for FG95p, WSD
+- All shape: (365, lat, lon) for day-of-year percentiles
+
+**Output Structure:**
+- ERA5: `data/processed/ETCCDI/ERA5/{index}_1981-2010.nc`
+- ACE2 per-member: `data/processed/ETCCDI/ACE2/{scenario}/ensemble_{N}/{index}_2001-2010.nc`
+- ACE2 ensemble stats: `data/processed/ETCCDI/ACE2/{scenario}/ensemble_stats/{index}_{mean|std|p05|p95}_2001-2010.nc`
+- Thresholds: `data/processed/ETCCDI/THRESHOLDS/{variable}_p{XX}_doy.nc`
+
+**Plan file**: `.github/plans/compute-etccdi-indices.plan.md`
 
 ## 29.05.2026
 
