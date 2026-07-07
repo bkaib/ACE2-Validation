@@ -18,29 +18,30 @@ import glob
 
 # %% 
 
-indices = [
-    #"TXx", "TNn", 
-    #"Rx1day", "R10", 
-    "CWD", 
-    "FXx"]
+indices_temp = ["TXx", "TNn", "ETR"]
+indices_precip = ["Rx1day", "R10", "CWD"]
+indices_wind = ["FXx", "WSD"]
+indices = indices_temp + indices_precip + indices_wind
 
 vmin_vmax_ranges = dict(
     TXx=(250, 320),
     TNn=(200, 320),
+    ETR=(0, 20),
     Rx1day=(0, 30),
     R10=(0, 5),
     CWD=(0, 20),
     FXx=(0, 30),
+    WSD=(0, 3),
 )
 
-fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 10), subplot_kw={'projection': ccrs.EqualEarth()})
+fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(15, 12), subplot_kw={'projection': ccrs.EqualEarth()})
 
-for i, idx in enumerate(indices):
+# Temperature indices (row 0)
+for i, idx in enumerate(indices_temp):
     ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
     
-    # Visualize index on global map with equal earth projection
     projection = ccrs.EqualEarth()
-    ax = axes.flatten()[i]
+    ax = axes[0, i]
     (ds[idx]
      .mean(dim="time")
      .plot(
@@ -54,6 +55,50 @@ for i, idx in enumerate(indices):
     ax.coastlines()
     ax.gridlines()
     ax.set_title(f"{idx} Index")
+
+# Precipitation indices (row 1)
+for i, idx in enumerate(indices_precip):
+    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
+    
+    projection = ccrs.EqualEarth()
+    ax = axes[1, i]
+    (ds[idx]
+     .mean(dim="time")
+     .plot(
+         ax=ax, 
+         transform=ccrs.PlateCarree(), 
+         cmap='viridis',
+        vmin=vmin_vmax_ranges[idx][0],
+        vmax=vmin_vmax_ranges[idx][1],
+         )
+     )
+    ax.coastlines()
+    ax.gridlines()
+    ax.set_title(f"{idx} Index")
+
+# Wind indices (row 2)
+for i, idx in enumerate(indices_wind):
+    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
+    
+    projection = ccrs.EqualEarth()
+    ax = axes[2, i]
+    (ds[idx]
+     .mean(dim="time")
+     .plot(
+         ax=ax, 
+         transform=ccrs.PlateCarree(), 
+         cmap='viridis',
+        vmin=vmin_vmax_ranges[idx][0],
+        vmax=vmin_vmax_ranges[idx][1],
+         )
+     )
+    ax.coastlines()
+    ax.gridlines()
+    ax.set_title(f"{idx} Index")
+
+# Hide empty subplots in row 2 (wind row only has 2 indices)
+axes[2, 2].set_visible(False)
+
 fig.suptitle("ERA5 ETCCDI Indices | Temporal Mean over 1981-2010", fontsize=16)
 plt.show()
 
