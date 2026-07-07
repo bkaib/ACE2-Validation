@@ -14,7 +14,7 @@
 
 ### 1.1 — Add xclim to environment.yml
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 **Create file**: `/work/gg0304/g260230/projects/ACE2-Validation/environment.yml`
 
@@ -47,7 +47,7 @@ dependencies:
 
 ### 1.2 — Create verification script
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 **Create file**: `/work/gg0304/g260230/projects/ACE2-Validation/scripts/02-compute-etccdi/verify_inputs.py`
 
@@ -324,13 +324,13 @@ if __name__ == "__main__":
 
 ### 1.3 — Create output directories
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 Output directories are created by the verification script above (see `create_output_directories()` function).
 
 ### 1.4 — Update config/paths.py with ETCCDI output paths
 
-- [ ] **Implementation**
+- [x] **Implementation**
 
 **Edit file**: `/work/gg0304/g260230/projects/ACE2-Validation/config/paths.py`
 

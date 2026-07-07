@@ -19,25 +19,25 @@ import glob
 # %% 
 
 indices = [
-    "TXx", "TNn", 
-    "Rx1day", "R10", 
-    #"CWD", 
+    #"TXx", "TNn", 
+    #"Rx1day", "R10", 
+    "CWD", 
     "FXx"]
 
 vmin_vmax_ranges = dict(
     TXx=(250, 320),
-    TNn=(250, 320),
+    TNn=(200, 320),
     Rx1day=(0, 30),
-    R10=(0, 50),
-    CWD=(0, 200),
-    FXx=(0, 25),
+    R10=(0, 5),
+    CWD=(0, 20),
+    FXx=(0, 30),
 )
 
 fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 10), subplot_kw={'projection': ccrs.EqualEarth()})
 
 for i, idx in enumerate(indices):
     ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
-
+    
     # Visualize index on global map with equal earth projection
     projection = ccrs.EqualEarth()
     ax = axes.flatten()[i]

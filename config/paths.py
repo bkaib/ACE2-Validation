@@ -12,6 +12,12 @@ SCRATCH = "/scratch/g/g260230/" # For intermediate files and outputs
 # DATA
 #---
 
+# Processed ETCCDI indices
+ETCCDI_ERA5 = PROJECT_ROOT + "data/processed/ETCCDI/ERA5/"
+ETCCDI_ACE2 = PROJECT_ROOT + "data/processed/ETCCDI/ACE2/"
+ETCCDI_THRESHOLDS = PROJECT_ROOT + "data/processed/ETCCDI/THRESHOLDS/"
+ACE2_ENSEMBLES_PROCESSED = PROJECT_ROOT + "data/processed/ace2-ensembles/"
+
 # Raw data
 ERA5_RAW = PROJECT_ROOT + "data/raw/ERA5/"
 ACE2_RAW = PROJECT_ROOT + "data/raw/ACE2-ERA5/output_directory/"

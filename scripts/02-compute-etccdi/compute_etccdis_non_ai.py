@@ -22,6 +22,11 @@ def compute_TNn(tasmin: xr.DataArray):
     TNn.name = 'TNn'
     return TNn
 
+def compute_ETR(TXx, TNn):
+    ETR = TXx - TNn
+    ETR.name = 'ETR'
+    return ETR
+
 def compute_Rx1day(pr: xr.DataArray):
     Rx1day = pr.resample(time='YE').max(dim='time')
     Rx1day.name = 'Rx1day'
@@ -41,6 +46,18 @@ def compute_FXx(sfcWind_max: xr.DataArray):
     FXx = sfcWind_max.resample(time='YE').max(dim='time')
     FXx.name = 'FXx'
     return FXx
+
+def compute_WSD(sfcWind_max: xr.DataArray, thresh=20):
+    # Use the CWD logic to compute the number of consecutive days with 
+    # maximum wind speeds above a certain threshold.
+    # Rename the variable to match the expected input for xclim's function
+    # New name: pr
+    pr = sfcWind_max.rename({'sfcWind_max': 'pr'})
+    pr.attrs["units"] = "1 mm/d" # Needs to be mm/d even though is wind speed because the xclim logic expects it.
+    WSD = xci.maximum_consecutive_wet_days(pr, thresh=f"{thresh} mm/d", freq="YS") # needs to be mm/d even though is wind speed because the logic expects it.
+    WSD.name = 'WSD'
+
+    return WSD
 
 def compute_absolute_indices_era5():
     # Load ERA5 data
@@ -76,10 +93,12 @@ def compute_absolute_indices_era5():
     # Compute absolute indices
     TXx = compute_TXx(era5_tasmax)
     TNn = compute_TNn(era5_tasmin)
+    ETR = compute_ETR(TXx, TNn)
     Rx1day = compute_Rx1day(era5_prate)
     R10 = compute_R10(era5_prate)
     CWD = compute_CWD(era5_prate)
     FXx = compute_FXx(era5_sfcWind_max)
+    WSD = compute_WSD(era5_sfcWind_max, thresh=20)
 
     # Save indices
     file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TXx_1981-2010.nc"
@@ -89,6 +108,10 @@ def compute_absolute_indices_era5():
     file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TNn_1981-2010.nc"
     TNn.to_netcdf(file)
     logger.info(f"Saved TNn to {file}")
+
+    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/ETR_1981-2010.nc"
+    ETR.to_netcdf(file)
+    logger.info(f"Saved ETR to {file}")
 
     file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/Rx1day_1981-2010.nc"
     Rx1day.to_netcdf(file)
@@ -106,13 +129,19 @@ def compute_absolute_indices_era5():
     FXx.to_netcdf(file)
     logger.info(f"Saved FXx to {file}")
 
+    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/WSD_1981-2010.nc"
+    WSD.to_netcdf(file)
+    logger.info(f"Saved WSD to {file}")
+
     absolute_indices = dict(
         TXx=TXx,
         TNn=TNn,
+        ETR=ETR,
         Rx1day=Rx1day,
         R10=R10,
         CWD=CWD,
-        FXx=FXx
+        FXx=FXx,
+        WSD=WSD
     )
     return absolute_indices
 
@@ -134,19 +163,21 @@ def process_single_ensemble_member(ensemble_folder, ensemble_num):
         ds = xr.open_dataset(ensemble_file)
         
         # Extract variables
-        ace2_tasmax = ds["TMP2m_max"]
-        ace2_tasmin = ds["TMP2m_min"]
-        ace2_prate = ds["PRATEsfc"] * 21600  # Convert to 1 mm/d
+        ace2_tasmax = ds["tasmax"]
+        ace2_tasmin = ds["tasmin"]
+        ace2_prate = ds["pr"] * 21600  # Convert to 1 mm/d
         ace2_prate.attrs["units"] = "1 mm/d"
-        ace2_sfcWind_max = ds["10si_max"]
+        ace2_sfcWind_max = ds["sfcWind_max"]
         
         # Compute absolute indices
         TXx = compute_TXx(ace2_tasmax)
         TNn = compute_TNn(ace2_tasmin)
+        ETR = compute_ETR(TXx, TNn)
         Rx1day = compute_Rx1day(ace2_prate)
         R10 = compute_R10(ace2_prate)
         CWD = compute_CWD(ace2_prate)
         FXx = compute_FXx(ace2_sfcWind_max)
+        WSD = compute_WSD(ace2_sfcWind_max, thresh=20)
         
         # Create output directory if it doesn't exist
         output_dir = os.path.join(output_base_path, ensemble_folder)
@@ -160,6 +191,10 @@ def process_single_ensemble_member(ensemble_folder, ensemble_num):
         file = os.path.join(output_dir, f"TNn_ensemble_{ensemble_num}.nc")
         TNn.to_netcdf(file)
         logger.info(f"  Saved TNn to {file}")
+
+        file = os.path.join(output_dir, f"ETR_ensemble_{ensemble_num}.nc")
+        ETR.to_netcdf(file)
+        logger.info(f"  Saved ETR to {file}")
         
         file = os.path.join(output_dir, f"Rx1day_ensemble_{ensemble_num}.nc")
         Rx1day.to_netcdf(file)
@@ -176,6 +211,10 @@ def process_single_ensemble_member(ensemble_folder, ensemble_num):
         file = os.path.join(output_dir, f"FXx_ensemble_{ensemble_num}.nc")
         FXx.to_netcdf(file)
         logger.info(f"  Saved FXx to {file}")
+
+        file = os.path.join(output_dir, f"WSD_ensemble_{ensemble_num}.nc")
+        WSD.to_netcdf(file)
+        logger.info(f"  Saved WSD to {file}")
         
         # Close the dataset
         ds.close()
