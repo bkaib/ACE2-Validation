@@ -489,8 +489,8 @@ def add_dummy_data(da, dummy_year):
     result = xr.concat([dummy_data_clean, da_clean], dim="time")
     return result
 
-def comp_relative_index_sem(ensemble_folder, ensemble_num, indices_to_compute):
-    """Process a single ensemble member and compute specified relative indices."""
+def comp_relative_index_sem(ensemble_folder, ensemble_num):
+    """Process a single ensemble member and compute all absolute indices."""
     import os
     
     base_path = "/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ace2-ensembles/1D"
@@ -501,7 +501,7 @@ def comp_relative_index_sem(ensemble_folder, ensemble_num, indices_to_compute):
     os.makedirs(output_dir, exist_ok=True)
     
     try:
-        logger.info(f"Starting processing for {ensemble_folder}/ensemble_{ensemble_num} - indices: {indices_to_compute}")
+        logger.info(f"Starting processing for {ensemble_folder}/ensemble_{ensemble_num}")
         ensemble_path = os.path.join(base_path, ensemble_folder)
         ensemble_file = os.path.join(ensemble_path, f"ensemble_{ensemble_num}.nc")
         
@@ -537,58 +537,60 @@ def comp_relative_index_sem(ensemble_folder, ensemble_num, indices_to_compute):
         logger.info(f"Daterange of tasmin (including dummy year {dummy_year}): {ace2_tasmin.time.min().values} to {ace2_tasmin.time.max().values}")
         logger.info(f"Daterange of tasmax (including dummy year {dummy_year}): {ace2_tasmax.time.min().values} to {ace2_tasmax.time.max().values}")
 
-        # Compute relative indices based on what's needed
+        # Compute relative indices
 
         ## TN10p
-        if "TN10p" in indices_to_compute:
-            logger.info("Computing TN10p...")
-            TN10p = compute_TN10p(
-                tasmin=ace2_tasmin,
-                baseline_data=ace2_tasmin.sel(time=slice("2001-01-01", "2010-12-31")),
-                per=10,
-                window=5,
-                bootstrap=True,
-                freq = "YS",
-            )
-            TN10p = TN10p.sel(time=TN10p.time.dt.year != dummy_year) # Drop the dummy year from the output
-            file = os.path.join(output_dir, f"TN10p_ensemble_{ensemble_num}.nc")
-            TN10p.to_netcdf(file)
-            logger.info(f"  Saved TN10p to {file}")  
-            del TN10p  # Free up memory      
+        logger.info("Computing TN10p...")
+        TN10p = compute_TN10p(
+            tasmin=ace2_tasmin,
+            baseline_data=ace2_tasmin.sel(time=slice("2001-01-01", "2010-12-31")),
+            per=10,
+            window=5,
+            bootstrap=True,
+            freq = "YS",
+        )
+        TN10p = TN10p.sel(time=TN10p.time.dt.year != dummy_year) # Drop the dummy year from the output
+        file = os.path.join(output_dir, f"TN10p_ensemble_{ensemble_num}.nc")
+        TN10p.to_netcdf(file)
+        logger.info(f"  Saved TN10p to {file}")  
+        del TN10p  # Free up memory      
 
         ## TX90p
-        if "TX90p" in indices_to_compute:
-            logger.info("Computing TX90p...")
-            TX90p = compute_TX90p(
-                tasmax=ace2_tasmax,
-                baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
-                per=90,
-                window=5,
-                bootstrap=True,
-                freq = "YS",
-            )
-            TX90p = TX90p.sel(time=TX90p.time.dt.year != dummy_year) # Drop the dummy year from the output
-            file = os.path.join(output_dir, f"TX90p_ensemble_{ensemble_num}.nc")
-            TX90p.to_netcdf(file)
-            logger.info(f"  Saved TX90p to {file}")
-            del TX90p  # Free up memory
+        logger.info("Computing TX90p...")
+        TX90p = compute_TX90p(
+            tasmax=ace2_tasmax,
+            baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
+            per=90,
+            window=5,
+            bootstrap=True,
+            freq = "YS",
+        )
+        TX90p = TX90p.sel(time=TX90p.time.dt.year != dummy_year) # Drop the dummy year from the output
+        file = os.path.join(output_dir, f"TX90p_ensemble_{ensemble_num}.nc")
+        TX90p.to_netcdf(file)
+        logger.info(f"  Saved TX90p to {file}")
+        del TX90p  # Free up memory
+
 
         ## WSDI
-        if "WSDI" in indices_to_compute:
-            logger.info("Computing WSDI...")
-            WSDI = compute_WSDI(
-                tasmax=ace2_tasmax,
-                baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
-                per=90,
-                window=5,
-                bootstrap=True,
-                freq = "YS",
-            )
-            WSDI = WSDI.sel(time=WSDI.time.dt.year != dummy_year) # Drop the dummy year from the output
-            file = os.path.join(output_dir, f"WSDI_ensemble_{ensemble_num}.nc")
-            WSDI.to_netcdf(file)
-            logger.info(f"  Saved WSDI to {file}")
-            del WSDI  # Free up memory
+        logger.info("Computing WSDI...")
+        WSDI = compute_WSDI(
+            tasmax=ace2_tasmax,
+            baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
+            per=90,
+            window=5,
+            bootstrap=True,
+            freq = "YS",
+        )
+        WSDI = WSDI.sel(time=WSDI.time.dt.year != dummy_year) # Drop the dummy year from the output
+        file = os.path.join(output_dir, f"WSDI_ensemble_{ensemble_num}.nc")
+        WSDI.to_netcdf(file)
+        logger.info(f"  Saved WSDI to {file}")
+        del WSDI  # Free up memory
+
+
+        ## FG95p
+        # TODO
 
         del ace2_tasmax, ace2_tasmin  # Free up memory
         
@@ -600,48 +602,38 @@ def comp_relative_index_sem(ensemble_folder, ensemble_num, indices_to_compute):
         return (ensemble_folder, ensemble_num), False
 
 def compute_relative_indices_ace2():
-    # Define which indices need to be computed for each ensemble member
-    # Format: {ensemble_folder: {ensemble_num: [list of indices to compute]}}
-    tasks_to_compute = {
-        "2000v1940": {
-            11: ["TN10p"],
-            3: ["TX90p", "WSDI"],
-            6: ["TX90p", "WSDI"],
-            7: ["TX90p", "WSDI"],
-            9: ["TX90p", "WSDI"],
-        },
-        "2000v1950": {
-            1: ["TN10p", "TX90p", "WSDI"],
-            3: ["TN10p", "TX90p", "WSDI"],
-            5: ["TN10p"],
-            4: ["TX90p", "WSDI"],
-            10: ["TX90p", "WSDI"],
-        },
-        "2000v1979": {
-            3: ["TN10p", "TX90p", "WSDI"],
-            4: ["TN10p", "TX90p", "WSDI"],
-            10: ["TX90p", "WSDI"],
-        },
-        "2000v2020": {
-            4: ["TN10p", "TX90p", "WSDI"],
-            7: ["TN10p", "TX90p", "WSDI"],
-            2: ["TX90p", "WSDI"],
-        },
+    # Define ensemble folders
+    ensemble_folders = [
+        #"2000v1940",
+        # "2000v1950", 
+        # "2000v1979",
+        "2000v2020"
+    ]
+    
+    # Already completed ensemble members (from previous runs)
+    completed_members = {
+        "2000v1940": [0, 6, 9],
+        "2000v1950": [11],
+        "2000v1979": [1, 2, 8],
+        "2000v2020": [9, 10, 11],
     }
     
-    # Create list of all tasks
+    # Create list of all ensemble member tasks
     tasks = []
-    for ensemble_folder, ensemble_members in tasks_to_compute.items():
-        for ensemble_num, indices in ensemble_members.items():
-            tasks.append((ensemble_folder, ensemble_num, indices))
+    for ensemble_folder in ensemble_folders:
+        for ensemble_num in range(12):
+            if ensemble_num in completed_members[ensemble_folder]:
+                logger.info(f"Skipping {ensemble_folder}/ensemble_{ensemble_num} as its computed already")
+                continue
+            tasks.append((ensemble_folder, ensemble_num))
     
     # Configure Dask for HPC environment
     n_workers = 2 # Adjust based on available memory and CPU cores
     dask_config.set(scheduler='processes', num_workers=n_workers)
-    logger.info(f"Starting parallel processing of {len(tasks)} tasks with {n_workers} workers")
+    logger.info(f"Starting parallel processing of {len(tasks)} ensemble members with {n_workers} workers")
     
     # Create delayed tasks for parallel execution
-    delayed_tasks = [delayed(comp_relative_index_sem)(folder, num, indices) for folder, num, indices in tasks]
+    delayed_tasks = [delayed(comp_relative_index_sem)(folder, num) for folder, num in tasks]
     
     # Compute all tasks in parallel
     results = compute(*delayed_tasks)
