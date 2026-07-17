@@ -186,6 +186,7 @@ def aggregate_6h_to_daily(input_path, output_path, logger):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Save to netCDF
+        ds_daily = ds_daily.dropna(dim=time_dim, how='all')  # Drop any days with all NaNs
         ds_daily.to_netcdf(output_path)
         logger.debug(f"Successfully saved aggregated data to {output_path}")
         

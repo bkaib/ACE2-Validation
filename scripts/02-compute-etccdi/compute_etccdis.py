@@ -6,9 +6,12 @@ from config.project_logging import setup_parallel_logger
 from dask import delayed, compute, config as dask_config
 import xarray as xr
 import xclim.indices as xci
+import xclim as xc
 import glob
+import pandas as pd
 #%% Setup Logger
-logger, queue_listener = setup_parallel_logger("compute_etccdis_non_ai", use_queue_listener=True)
+current_filename = __file__.split("/")[-1].replace(".py", "")
+logger, queue_listener = setup_parallel_logger(current_filename, use_queue_listener=True)
 
 
 #%% Loading functions
@@ -300,143 +303,155 @@ def compute_absolute_indices_ace2():
 #%% Functions for relative indices
 
 def compute_TN10p(
-    _tasmin: xr.DataArray,
-    _baseline_data: xr.DataArray,
+    tasmin: xr.DataArray,
+    baseline_data: xr.DataArray,
     per = 10,
     window = 5,
-    _bootstrap = True,
-    _freq = "YS",
+    bootstrap = True,
+    freq = "YS",
 ):
     from xclim.core.calendar import percentile_doy
-    _baseline_data.time.values.shape
     
-    _tasmin_per = percentile_doy(_baseline_data, per=per, window=window) 
-    tn10p = (xci
+    tasmin_per = percentile_doy(baseline_data, per=per, window=window) 
+    tn10p = (xc
      .indicators
      .atmos
      .tn10p(
-         _tasmin=_tasmin,
-         _tasmin_per=_tasmin_per,
-         _freq=_freq, 
-         _bootstrap=_bootstrap,
+         tasmin=tasmin,
+         tasmin_per=tasmin_per,
+         freq=freq, 
+         bootstrap=bootstrap,
          )
     )
     return tn10p
 
 def compute_TX90p(
-    _tasmax: xr.DataArray,
-    _baseline_data: xr.DataArray,
+    tasmax: xr.DataArray,
+    baseline_data: xr.DataArray,
     per = 90,
     window = 5,
-    _bootstrap = True,
-    _freq = "YS",
+    bootstrap = True,
+    freq = "YS",
 ):
     from xclim.core.calendar import percentile_doy
-    _baseline_data.time.values.shape
+    baseline_data.time.values.shape
     
-    _tasmax_per = percentile_doy(_baseline_data, per=per, window=window) 
-    tx90p = (xci
+    tasmax_per = percentile_doy(baseline_data, per=per, window=window) 
+    tx90p = (xc
      .indicators
      .atmos
      .tx90p(
-         _tasmax=_tasmax,
-         _tasmax_per=_tasmax_per,
-         _freq=_freq, 
-         _bootstrap=_bootstrap,
+         tasmax=tasmax,
+         tasmax_per=tasmax_per,
+         freq=freq, 
+         bootstrap=bootstrap,
          )
     )
     return tx90p
 
 def compute_WSDI(
-   _tasmax: xr.DataArray,
-    _baseline_data: xr.DataArray,
+   tasmax: xr.DataArray,
+    baseline_data: xr.DataArray,
     per = 90,
     window = 5,
-    _bootstrap = True,
-    _freq = "YS",
+    bootstrap = True,
+    freq = "YS",
 ):
     from xclim.core.calendar import percentile_doy
 
-    _tasmax_per = percentile_doy(_baseline_data, per=per, window=window)
+    tasmax_per = percentile_doy(baseline_data, per=per, window=window)
 
-    WSDI = (xci
+    WSDI = (xc
             .indicators
             .icclim
             .WSDI(
-                _tasmax=_tasmax, 
-                _tasmax_per=_tasmax_per,
-                _freq=_freq, 
-                _bootstrap=_bootstrap, 
+                tasmax=tasmax, 
+                tasmax_per=tasmax_per,
+                freq=freq, 
+                bootstrap=bootstrap, 
             )
     )
     return WSDI
 
-# def compute_FG95p(
-#     _sfcWind_mean: xr.DataArray,
-#     _baseline_data: xr.DataArray,
-#     per = 95,
-#     window = 5,
-#     _bootstrap = True,
-#     _freq = "YS",
-# ):
-# TODO Check if it works
-#     from xclim.core.calendar import percentile_doy
+def compute_FG95p(
+    sfcWind_mean: xr.DataArray,
+    baseline_data: xr.DataArray,
+    per = 95,
+    window = 5,
+    bootstrap = True,
+    freq = "YS",
+):
+    from xclim.core.calendar import percentile_doy
 
-#     # Compute the daily thresholds
-#     _sfcWind_mean_per = percentile_doy(_baseline_data, per=per, window=window)
+    # Compute the daily thresholds
+    sfcWind_mean_per = percentile_doy(baseline_data, per=per, window=window)
 
-#     # Count the number of days exceeding the threshold at each grid point and sum over the year
-#     exceedances = (_sfcWind_mean > _sfcWind_mean_per).astype(int)
-#     FG95p = exceedances.resample(time=_freq).sum()
+    # Count the number of days exceeding the threshold at each grid point and sum over the year
+    exceedances = (sfcWind_mean > sfcWind_mean_per).astype(int)
+    FG95p = exceedances.resample(time=freq).sum()
     
-#     return FG95p
+    return FG95p
+
 
 
 def compute_relative_indices_era5():
     # Load data
     era5_tasmax, era5_tasmin, era5_prate, era5_sfcWind_max = load_era5()
+    del era5_prate  # Not needed for relative indices
+    del era5_sfcWind_max  # Not needed for relative indices
+
+    ## Add units to the data
+    era5_tasmin.attrs["units"] = "K"  # Ensure units are in Kelvin for xclim
+    era5_tasmax.attrs["units"] = "K"  # Ensure units are in Kelvin for xclim
+
+    ## Unchunk the data
+    era5_tasmin = era5_tasmin.load()
+    era5_tasmax = era5_tasmax.load()
 
     # Compute relative indices
 
-    ## TN10p
-    _baseline_data = era5_tasmin.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
-    tn10p = compute_TN10p(
-        _tasmin=era5_tasmin,
-        _baseline_data=_baseline_data,
-        per=10,
-        window=5,
-        _bootstrap=True,
-        _freq = "YS",
-        )
+    # ## TN10p
+    # logger.info("Computing TN10p...")
+    # baseline_data = era5_tasmin.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
+    # tn10p = compute_TN10p(
+    #     tasmin=era5_tasmin,
+    #     baseline_data=baseline_data,
+    #     per=10,
+    #     window=5,
+    #     bootstrap=True,
+    #     freq = "YS",
+    #     )
     
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TN10p_1981-2010.nc"
-    tn10p.to_netcdf(file)
-    logger.info(f"Saved TN10p to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TN10p_1981-2010.nc"
+    # tn10p.to_netcdf(file)
+    # logger.info(f"Saved TN10p to {file}")
 
-    ## TX90p
-    _baseline_data = era5_tasmax.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
-    tx90p = compute_TX90p(
-        _tasmax=era5_tasmax,
-        _baseline_data=_baseline_data,
-        per=90,
-        window=5,
-        _bootstrap=True,
-        _freq = "YS",
-        )
+    # ## TX90p
+    # logger.info("Computing TX90p...")
+    # baseline_data = era5_tasmax.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
+    # tx90p = compute_TX90p(
+    #     tasmax=era5_tasmax,
+    #     baseline_data=baseline_data,
+    #     per=90,
+    #     window=5,
+    #     bootstrap=True,
+    #     freq = "YS",
+    #     )
     
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TX90p_1981-2010.nc"
-    tx90p.to_netcdf(file)
-    logger.info(f"Saved TX90p to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TX90p_1981-2010.nc"
+    # tx90p.to_netcdf(file)
+    # logger.info(f"Saved TX90p to {file}")
 
     ## WSDI (Warm spell duration index)
-    _baseline_data = era5_tasmax.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
+    logger.info("Computing WSDI...")
+    baseline_data = era5_tasmax.sel(time=slice("2001-01-01", "2010-12-31")) # For computation of percentiles.
     wsdi = compute_WSDI(
-        _tasmax=era5_tasmax,
-        _baseline_data=_baseline_data,
+        tasmax=era5_tasmax,
+        baseline_data=baseline_data,
         per=90,
         window=5,
-        _bootstrap=True,
-        _freq = "YS",
+        bootstrap=True,
+        freq = "YS",
         )
     
     file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/WSDI_1981-2010.nc"
@@ -444,6 +459,35 @@ def compute_relative_indices_era5():
     logger.info(f"Saved WSDI to {file}")
 
     ## FG95p (Days when daily mean wind speed is above the 95th percentile of the baseline period)
+    # TODO
+    del era5_tasmax, era5_tasmin  # Free up memory
+    del baseline_data  # Free up memory
+
+def add_dummy_data(da, dummy_year):
+    import numpy as np
+    
+    dummy_dates = pd.date_range(start=f"{dummy_year}-12-01", end=f"{dummy_year}-12-31", freq='D')
+    
+    # Create dummy data filled with NaN, matching the spatial dimensions of the original data
+    dummy_shape = (len(dummy_dates),) + da.shape[1:]  # (time,) + spatial dims
+    dummy_values = np.full(dummy_shape, np.nan, dtype=da.dtype)
+    
+    # Create a new DataArray with the dummy values
+    dummy_data = xr.DataArray(
+        dummy_values,
+        coords={'time': dummy_dates},
+        dims=da.dims,
+        name=da.name,
+        attrs=da.attrs
+    )
+    
+    # Drop non-time coordinates from the original data to allow concatenation
+    da_clean = da.reset_coords(drop=True)
+    dummy_data_clean = dummy_data.reset_coords(drop=True)
+    
+    # Concatenate along time dimension
+    result = xr.concat([dummy_data_clean, da_clean], dim="time")
+    return result
 
 def comp_relative_index_sem(ensemble_folder, ensemble_num):
     """Process a single ensemble member and compute all absolute indices."""
@@ -467,56 +511,88 @@ def comp_relative_index_sem(ensemble_folder, ensemble_num):
         # Extract variables
         ace2_tasmax = ds["tasmax"]
         ace2_tasmin = ds["tasmin"]
-        ace2_sfcWind_mean = ds["sfcWind_mean"]
- 
-        
+        # ace2_sfcWind_mean = ds["sfcWind_mean"]
+
+        # Close the dataset & Delete
+        ds.close()
+        del ds
+
+        # Add dummy data for year December 2000 to ensure that xclim will bootstrap 2001-2010
+        dummy_year = 2000
+        ace2_tasmin = add_dummy_data(ace2_tasmin, dummy_year)
+        ace2_tasmax = add_dummy_data(ace2_tasmax, dummy_year)
+
+        # Add units to the data
+        ace2_tasmin.attrs["units"] = "K"  # Ensure units are in Kelvin for xclim
+        ace2_tasmax.attrs["units"] = "K"
+
+        # Unchunk data
+        ace2_tasmin = ace2_tasmin.load()
+        ace2_tasmax = ace2_tasmax.load()
+
+        # Convert to pd.datetime for xclim compatibility
+        ace2_tasmin["time"] = pd.to_datetime(ace2_tasmin["time"].values)
+        ace2_tasmax["time"] = pd.to_datetime(ace2_tasmax["time"].values)
+
+        logger.info(f"Daterange of tasmin (including dummy year {dummy_year}): {ace2_tasmin.time.min().values} to {ace2_tasmin.time.max().values}")
+        logger.info(f"Daterange of tasmax (including dummy year {dummy_year}): {ace2_tasmax.time.min().values} to {ace2_tasmax.time.max().values}")
+
         # Compute relative indices
 
         ## TN10p
+        logger.info("Computing TN10p...")
         TN10p = compute_TN10p(
-            _tasmin=ace2_tasmin,
-            _baseline_data=ace2_tasmin.sel(time=slice("2001-01-01", "2010-12-31")),
+            tasmin=ace2_tasmin,
+            baseline_data=ace2_tasmin.sel(time=slice("2001-01-01", "2010-12-31")),
             per=10,
             window=5,
-            _bootstrap=True,
-            _freq = "YS",
+            bootstrap=True,
+            freq = "YS",
         )
+        TN10p = TN10p.sel(time=TN10p.time.dt.year != dummy_year) # Drop the dummy year from the output
         file = os.path.join(output_dir, f"TN10p_ensemble_{ensemble_num}.nc")
         TN10p.to_netcdf(file)
-        logger.info(f"  Saved TN10p to {file}")        
+        logger.info(f"  Saved TN10p to {file}")  
+        del TN10p  # Free up memory      
 
         ## TX90p
+        logger.info("Computing TX90p...")
         TX90p = compute_TX90p(
-            _tasmax=ace2_tasmax,
-            _baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
+            tasmax=ace2_tasmax,
+            baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
             per=90,
             window=5,
-            _bootstrap=True,
-            _freq = "YS",
+            bootstrap=True,
+            freq = "YS",
         )
+        TX90p = TX90p.sel(time=TX90p.time.dt.year != dummy_year) # Drop the dummy year from the output
         file = os.path.join(output_dir, f"TX90p_ensemble_{ensemble_num}.nc")
         TX90p.to_netcdf(file)
         logger.info(f"  Saved TX90p to {file}")
+        del TX90p  # Free up memory
 
 
         ## WSDI
+        logger.info("Computing WSDI...")
         WSDI = compute_WSDI(
-            _tasmax=ace2_tasmax,
-            _baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
+            tasmax=ace2_tasmax,
+            baseline_data=ace2_tasmax.sel(time=slice("2001-01-01", "2010-12-31")),
             per=90,
             window=5,
-            _bootstrap=True,
-            _freq = "YS",
+            bootstrap=True,
+            freq = "YS",
         )
+        WSDI = WSDI.sel(time=WSDI.time.dt.year != dummy_year) # Drop the dummy year from the output
         file = os.path.join(output_dir, f"WSDI_ensemble_{ensemble_num}.nc")
         WSDI.to_netcdf(file)
         logger.info(f"  Saved WSDI to {file}")
+        del WSDI  # Free up memory
 
 
         ## FG95p
+        # TODO
 
-        # Close the dataset
-        ds.close()
+        del ace2_tasmax, ace2_tasmin  # Free up memory
         
         logger.info(f"Successfully completed processing for {ensemble_folder}/ensemble_{ensemble_num}")
         return (ensemble_folder, ensemble_num), True
@@ -534,14 +610,25 @@ def compute_relative_indices_ace2():
         "2000v2020"
     ]
     
+    # Already completed ensemble members (from previous runs)
+    completed_members = {
+        "2000v1940": [0, 6, 9],
+        "2000v1950": [11],
+        "2000v1979": [1, 2, 8],
+        "2000v2020": [9, 10, 11],
+    }
+    
     # Create list of all ensemble member tasks
     tasks = []
     for ensemble_folder in ensemble_folders:
         for ensemble_num in range(12):
+            if ensemble_num in completed_members[ensemble_folder]:
+                logger.info(f"Skipping {ensemble_folder}/ensemble_{ensemble_num} as its computed already")
+                continue
             tasks.append((ensemble_folder, ensemble_num))
     
     # Configure Dask for HPC environment
-    n_workers = 10  # Adjust based on available memory and CPU cores
+    n_workers = 2 # Adjust based on available memory and CPU cores
     dask_config.set(scheduler='processes', num_workers=n_workers)
     logger.info(f"Starting parallel processing of {len(tasks)} ensemble members with {n_workers} workers")
     
@@ -572,17 +659,15 @@ def main():
     # logger.info("Computing absolute indices for ACE2 ensembles...")
     # compute_absolute_indices_ace2() 
 
-    # Compute relative indices for ERA5
-    logger.info("Computing relative indices for ERA5...")
-    compute_relative_indices_era5()
-    logger.info("Completed computing relative indices for ERA5")
+    # # Compute relative indices for ERA5
+    # logger.info("Computing relative indices for ERA5...")
+    # compute_relative_indices_era5()
+    # logger.info("Completed computing relative indices for ERA5")
 
-    # # Compute relative indices for ACE2 ensembles
-    # logger.info("Computing relative indices for ACE2 ensembles...")
-    # compute_relative_indices_ace2()
-    # logger.info("Completed computing relative indices for ACE2 ensembles")
-
-
+    # Compute relative indices for ACE2 ensembles
+    logger.info("Computing relative indices for ACE2 ensembles...")
+    compute_relative_indices_ace2()
+    logger.info("Completed computing relative indices for ACE2 ensembles")
 
 if __name__ == "__main__":
     main()

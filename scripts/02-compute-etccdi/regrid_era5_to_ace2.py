@@ -21,13 +21,14 @@ import warnings
 #%% Setup Logger
 logger, queue_listener = setup_parallel_logger("regrid-era5-to-ace2-parallel", use_queue_listener=True)
 
+#%% Constants
 # Define paths
 PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation"
 BASE_INPUT = Path(PROJECT_ROOT) / "data/raw/ERA5/1D"
 BASE_OUTPUT = Path(PROJECT_ROOT) / "data/processed/ERA5/1D/ACE2GRID"
 ACE2_SAMPLE = Path(PROJECT_ROOT) / "data/raw/ace2-ensembles/1D/2000v1979/ensemble_0.nc"
 
-
+#%% Main
 def regrid_era5_file(file_path, target_grid, output_dir):
     """Regrid a single ERA5 file to ACE2 grid.
     
@@ -45,6 +46,11 @@ def regrid_era5_file(file_path, target_grid, output_dir):
     tuple
         (file_name, success: bool)
     """
+    if not "2004" in file_path.name:
+        logger.warning(f"Skipping file: {file_path.name}")
+        
+        return file_path.name, False
+    
     try:
         logger.info(f"Starting regridding for {file_path.name}")
         
@@ -78,12 +84,15 @@ def regrid_era5_file(file_path, target_grid, output_dir):
 def main():
     """Main function to parallelize regridding of ERA5 files for multiple variables."""
     # Variables to process
-    variables = ["10si", "TMP2m", "PRATEsfc"]
+    variables = [
+        "10si", 
+        #"TMP2m", "PRATEsfc"
+        ]
     
     # Load target grid
     logger.info(f"Loading target ACE2 grid from {ACE2_SAMPLE}")
     ace2_ds = xr.open_dataset(ACE2_SAMPLE)
-    target_grid = ace2_ds["tasmax"].isel(time=0)  # Use the first time step to get the grid
+    target_grid = ace2_ds["tasmax"].isel(time=0).drop_vars("time", errors="ignore")  # Use the first time step to get the grid
     logger.info(f"Target grid dimensions: {target_grid.dims}")
     logger.info(f"""Target grid lon/lat range:
                 lon({target_grid.lon.min().values}, {target_grid.lon.max().values}),
@@ -135,3 +144,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# %%

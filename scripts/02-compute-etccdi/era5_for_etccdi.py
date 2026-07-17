@@ -416,21 +416,38 @@ def preprocess_wind_speed(yyyy):
     logger.info(f"Computing wind speed for the filtered ACE2 timesteps for year {yyyy}...")
     w = (u10_filtered['u10']**2 + v10_filtered['v10']**2)**0.5
 
-    # Resample to daily max
-    logger.info(f"Resampling wind speed to daily max for year {yyyy}...")
-    w_daily_max = w.resample(time='1D').max()
+    # Resample to daily max and daily mean
+    # ## Daily Max
+    # logger.info(f"Resampling wind speed to daily max for year {yyyy}...")
+    # w_daily_max = w.resample(time='1D').max()
 
-    # Rename the variable to 10si_max to be consistent with the naming convention of the other datasets
-    w_daily_max = w_daily_max.rename('10si_max')
+    # ## Rename the variable to 10si_max to be consistent with the naming convention of the other datasets
+    # w_daily_max = w_daily_max.rename('10si_max')
 
-    # Convert to dataset
-    w_daily_max = w_daily_max.to_dataset(name='10si_max')
+    # ## Convert to dataset
+    # w_daily_max = w_daily_max.to_dataset(name='10si_max')
 
-    # Save w_daily_max to NetCDF
-    logger.info(f"Saving daily max wind speed to NetCDF for year {yyyy}...")
-    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
-    w_daily_max.to_netcdf(output_path)
-    logger.info(f"Saved daily max wind speed to {output_path}")
+    # ## Save w_daily_max to NetCDF
+    # logger.info(f"Saving daily max wind speed to NetCDF for year {yyyy}...")
+    # output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
+    # w_daily_max.to_netcdf(output_path)
+    # logger.info(f"Saved daily max wind speed to {output_path}")
+
+    ## Daily Mean
+    logger.info(f"Resampling wind speed to daily mean for year {yyyy}...")
+    w_daily_mean = w.resample(time='1D').mean()
+
+    ## Rename the variable to 10si_mean to be consistent with the naming convention of the other datasets
+    w_daily_mean = w_daily_mean.rename('10si_mean')
+
+    ## Convert to dataset
+    w_daily_mean = w_daily_mean.to_dataset(name='10si_mean')
+
+    ## Save w_daily_mean to NetCDF
+    logger.info(f"Saving daily mean wind speed to NetCDF for year {yyyy}...")
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/10si/daily_mean_{yyyy}.nc"
+    w_daily_mean.to_netcdf(output_path)
+    logger.info(f"Saved daily mean wind speed to {output_path}")
 
     # Free RAM
     u10.close()
@@ -438,8 +455,9 @@ def preprocess_wind_speed(yyyy):
     u10_filtered.close()
     v10_filtered.close()
     w.close()
-    w_daily_max.close()
-    del u10, v10, u10_filtered, v10_filtered, w, w_daily_max
+    w_daily_mean.close()
+    # w_daily_max.close()
+    del u10, v10, u10_filtered, v10_filtered, w, w_daily_mean
     gc.collect()
 
 def remap_10si_with_cdo(yyyy):
@@ -447,10 +465,10 @@ def remap_10si_with_cdo(yyyy):
     cdo = Cdo()
     folder = "/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/10si/"
     target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
-    input_file_sum = f"{folder}daily_max_{yyyy}.nc"
-    temp_output_file_sum = f"{folder}remapped_daily_max_{yyyy}_tmp.nc" # Temporary output file for remapped data
+    input_file_sum = f"{folder}daily_mean_{yyyy}.nc"
+    temp_output_file_sum = f"{folder}remapped_daily_mean_{yyyy}_tmp.nc" # Temporary output file for remapped data
 
-    logger.info(f"Remapping daily max for year {yyyy} with CDO...")
+    logger.info(f"Remapping daily mean for year {yyyy} with CDO...")
     cdo.remapnn(
             target_grid_file, 
             input=input_file_sum, 
@@ -467,7 +485,7 @@ def process_single_year(yyyy):
     """Process a single year - wraps preprocess and remap."""
     try:
         logger.info(f"Starting processing for year {yyyy}")
-        #preprocess_wind_speed(yyyy)
+        preprocess_wind_speed(yyyy)
         remap_10si_with_cdo(yyyy)
         logger.info(f"Successfully completed processing for year {yyyy}")
         return yyyy, True
@@ -479,7 +497,7 @@ def main():
     # TODO: The preprocessing functions of tmp2m and prate need to be adjusted to the idea of the preprocessing of windspeed.
     # e.g. loading all files of one year at once and then computing to maximize RAM.
     years = range(1981, 2010 + 1)
-    
+    years = [2004,]
     # Configure Dask for HPC environment
     n_workers = 10  # Increase if memory permits; decrease if you hit memory limits
     dask_config.set(scheduler='processes', num_workers=n_workers)

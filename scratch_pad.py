@@ -1,6 +1,7 @@
 # %% Modules
 import logging
 import sys
+sys.path.append("/work/gg0304/g260230/projects/ACE2-Validation")
 import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
@@ -16,7 +17,43 @@ import os
 import glob
 
 
-# %% 
+#%% Check regridding of 10simean
+var = "WSDI"
+p = f"data/processed/ETCCDI/ACE2/2000v1940/{var}_ensemble_0.nc"
+era5_p = f"data/processed/ETCCDI/ERA5/{var}_1981-2010.nc"
+ds = xr.open_dataset(p)
+era5_ds = xr.open_dataset(era5_p)
+
+data_array_var = var
+era5_ds[data_array_var].values
+
+# Convert the values of the data array from timdelta64[ns] to days
+era5_ds[data_array_var].values = era5_ds[data_array_var].dt.days
+ds[data_array_var].values = ds[data_array_var].dt.days
+
+
+#%% Plot ETCCDI of ERA5 and ACE2 in one figure with subplots for each variable
+# Column 1: ERA5, Column 2: ACE2, Column 3: Difference (ACE2 - ERA5)
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5), subplot_kw={'projection': ccrs.EqualEarth()})
+data_ace2 = ds[data_array_var].isel(percentiles=0).mean("time")
+data_era5 = era5_ds[data_array_var].sel(time=slice("2001-01-01", "2010-12-31")).mean("time")
+# Convert type of data from timedelta64[ns] to days
+data_era5.plot(ax=axes[0], transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
+data_ace2.plot(ax=axes[1], transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
+difference = data_ace2 - data_era5
+difference.plot(ax=axes[2], transform=ccrs.PlateCarree(), cmap='bwr', alpha=0.5)
+axes[0].coastlines()
+axes[0].gridlines()
+axes[0].set_title("ERA5")
+axes[1].coastlines()
+axes[1].gridlines()
+axes[1].set_title("ACE2")
+axes[2].coastlines()
+axes[2].gridlines()
+axes[2].set_title("Difference (ACE2 - ERA5)")
+fig.show()
+
+# %% Visualize Absolute Indices
 
 indices_temp = ["TXx", "TNn", "ETR"]
 indices_precip = ["Rx1day", "R10", "CWD"]
@@ -104,7 +141,7 @@ plt.show()
 
 
 
-#%% Look at 10si
+#%% Look at 10si regridded
 variables = ["10si", 
              #"TMP2m", 
              # "PRATEsfc",
@@ -166,43 +203,4 @@ fig.show()
 
 
 
-# %% Visualize yearly max windspeed
-yyyy = 1981
-p = f"data/processed/era5/1D/10si/daily_max_{yyyy}.nc"
-ds = xr.open_dataset(p)
-print(ds)
 
-# Plot the yearly max wind speed on a global grid with equal earth
-fig = plt.figure(figsize=(12, 6))
-projection = ccrs.EqualEarth()
-ax = plt.axes(projection=projection)
-ds['__xarray_dataarray_variable__'].max("time").plot(ax=ax, transform=ccrs.PlateCarree(), cmap='viridis')
-ax.coastlines()
-ax.set_title(f"Yearly Max Wind Speed for {yyyy}")
-plt.show()
-
-# Plot the seasonal mean (DJF, MAM, JJA, SON) max wind speed
-ds['season'] = ds['time.season']
-print(ds.groupby('season'))
-seasonal_mean = ds.groupby('season').mean('time')
-fig, axes = plt.subplots(ncols=4, nrows=1, figsize=(15, 10), subplot_kw={'projection': projection})
-
-axes = axes.flatten()
-for i, season in enumerate(['DJF', 'MAM', 'JJA', 'SON']):
-    seasonal_mean['__xarray_dataarray_variable__'].sel(season=season).plot(vmin=0, vmax=15,ax=axes[i], transform=ccrs.PlateCarree(), cmap='viridis', add_colorbar=False)
-    axes[i].coastlines()
-    axes[i].set_title(f"{season}")
-
-# One colorbar for all subplots, horizontally under the subplots
-cbar_ax = fig.add_axes([0.1, 0.05, 0.8, 0.02])  # [left, bottom, width, height]
-norm = plt.Normalize(vmin=0, vmax=15)
-sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
-sm.set_array([])
-fig.colorbar(sm, cax=cbar_ax, orientation='horizontal', label='(m/s)')
-fig.suptitle(f"Seasonal Mean Max Wind Speed for {yyyy}", fontsize=16)
-plt.tight_layout()
-plt.show()
-
-# %%
-seasonal_mean
-# %%
