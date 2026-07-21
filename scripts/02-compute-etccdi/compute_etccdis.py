@@ -604,29 +604,18 @@ def compute_relative_indices_ace2():
     # Format: {ensemble_folder: {ensemble_num: [list of indices to compute]}}
     tasks_to_compute = {
         "2000v1940": {
-            11: ["TN10p"],
-            3: ["TX90p", "WSDI"],
-            6: ["TX90p", "WSDI"],
-            7: ["TX90p", "WSDI"],
-            9: ["TX90p", "WSDI"],
+            11: ["TX90p", "WSDI"],
         },
-        "2000v1950": {
-            1: ["TN10p", "TX90p", "WSDI"],
-            3: ["TN10p", "TX90p", "WSDI"],
-            5: ["TN10p"],
-            4: ["TX90p", "WSDI"],
-            10: ["TX90p", "WSDI"],
-        },
-        "2000v1979": {
-            3: ["TN10p", "TX90p", "WSDI"],
-            4: ["TN10p", "TX90p", "WSDI"],
-            10: ["TX90p", "WSDI"],
-        },
-        "2000v2020": {
-            4: ["TN10p", "TX90p", "WSDI"],
-            7: ["TN10p", "TX90p", "WSDI"],
-            2: ["TX90p", "WSDI"],
-        },
+        # "2000v1950": {
+        #     5: ["TN10p", "TX90p", "WSDI"],
+        # },
+        # "2000v1979": {
+        # },
+        # "2000v2020": {
+        #     4: ["TN10p", "TX90p", "WSDI"],
+        #     7: ["TN10p", "TX90p", "WSDI"],
+        #     2: ["TX90p", "WSDI"],
+        # },
     }
     
     # Create list of all tasks
