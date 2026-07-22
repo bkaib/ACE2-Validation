@@ -17,6 +17,17 @@ import os
 import glob
 
 
+# %% Load ensemble data
+p = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/FG95p_1981-2010.nc"
+ds = xr.open_dataset(p)
+
+mean = ds["FG95p"].isel(percentiles=0).sel(time=slice("2001-01-01", "2010-12-31")).mean("time").dt.days # convert time delta to days
+
+fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': ccrs.EqualEarth()})
+mean.plot(ax=ax, transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
+ax.coastlines() 
+ax.gridlines()
+
 #%% Check regridding of 10simean
 var = "WSDI"
 p = f"data/processed/ETCCDI/ACE2/2000v1940/{var}_ensemble_0.nc"
@@ -57,7 +68,7 @@ fig.show()
 
 indices_temp = ["TXx", "TNn", "ETR"]
 indices_precip = ["Rx1day", "R10", "CWD"]
-indices_wind = ["FXx", "WSD"]
+indices_wind = ["FXx", "WSD",]
 indices = indices_temp + indices_precip + indices_wind
 
 vmin_vmax_ranges = dict(
