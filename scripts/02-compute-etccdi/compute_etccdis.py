@@ -658,61 +658,61 @@ def compute_relative_indices_ace2():
     # Format: {ensemble_folder: {ensemble_num: [list of indices to compute]}}
     tasks_to_compute = {
         "2000v1940": {
-            0: ["FG95p"],
-            1: ["FG95p"],
-            2: ["FG95p"],
-            3: ["FG95p"],
-            4: ["FG95p"],
-            5: ["FG95p"],
-            6: ["FG95p"],
-            7: ["FG95p"],
-            8: ["FG95p"],
-            9: ["FG95p"],
-            10: ["FG95p"],
-            11: ["FG95p"],   
+            # 0: ["FG95p"],
+            # 1: ["FG95p"],
+            # 2: ["FG95p"],
+            # 3: ["FG95p"],
+            # 4: ["FG95p"],
+            # 5: ["FG95p"],
+            # 6: ["FG95p"],
+            7: ["TN10p",],
+            # 8: ["FG95p"],
+            # 9: ["FG95p"],
+            # 10: ["FG95p"],
+            # 11: ["FG95p"],   
         },
-        "2000v1950": {
-            0: ["FG95p"],
-            1: ["FG95p"],
-            2: ["FG95p"],
-            3: ["FG95p"],
-            4: ["FG95p"],
-            5: ["FG95p"],
-            6: ["FG95p"],
-            7: ["FG95p"],
-            8: ["FG95p"],
-            9: ["FG95p"],
-            10: ["FG95p"],
-            11: ["FG95p"], 
-        },
-        "2000v1979": {
-            0: ["FG95p"],
-            1: ["FG95p"],
-            2: ["FG95p"],
-            3: ["FG95p"],
-            4: ["FG95p"],
-            5: ["FG95p"],
-            6: ["FG95p"],
-            7: ["FG95p"],
-            8: ["FG95p"],
-            9: ["FG95p"],
-            10: ["FG95p"],
-            11: ["FG95p"], 
-        },
-        "2000v2020": {
-            0: ["FG95p"],
-            1: ["FG95p"],
-            2: ["FG95p"],
-            3: ["FG95p"],
-            4: ["FG95p"],
-            5: ["FG95p"],
-            6: ["FG95p"],
-            7: ["FG95p"],
-            8: ["FG95p"],
-            9: ["FG95p"],
-            10: ["FG95p"],
-            11: ["FG95p"], 
-        },
+    #     "2000v1950": {
+    #         0: ["FG95p"],
+    #         1: ["FG95p"],
+    #         2: ["FG95p"],
+    #         3: ["FG95p"],
+    #         4: ["FG95p"],
+    #         5: ["FG95p"],
+    #         6: ["FG95p"],
+    #         7: ["FG95p"],
+    #         8: ["FG95p"],
+    #         9: ["FG95p"],
+    #         10: ["FG95p"],
+    #         11: ["FG95p"], 
+    #     },
+    #     "2000v1979": {
+    #         0: ["FG95p"],
+    #         1: ["FG95p"],
+    #         2: ["FG95p"],
+    #         3: ["FG95p"],
+    #         4: ["FG95p"],
+    #         5: ["FG95p"],
+    #         6: ["FG95p"],
+    #         7: ["FG95p"],
+    #         8: ["FG95p"],
+    #         9: ["FG95p"],
+    #         10: ["FG95p"],
+    #         11: ["FG95p"], 
+    #     },
+    #     "2000v2020": {
+    #         0: ["FG95p"],
+    #         1: ["FG95p"],
+    #         2: ["FG95p"],
+    #         3: ["FG95p"],
+    #         4: ["FG95p"],
+    #         5: ["FG95p"],
+    #         6: ["FG95p"],
+    #         7: ["FG95p"],
+    #         8: ["FG95p"],
+    #         9: ["FG95p"],
+    #         10: ["FG95p"],
+    #         11: ["FG95p"], 
+    #     },
     }
     
     # Create list of all tasks
@@ -723,9 +723,10 @@ def compute_relative_indices_ace2():
     
     # Configure Dask for HPC environment
     n_workers = 2 # Adjust based on available memory and CPU cores
-    dask_config.set(scheduler='processes', num_workers=n_workers)
-    logger.info(f"Starting parallel processing of {len(tasks)} tasks with {n_workers} workers")
-    
+    # parallel version: dask_config.set(scheduler='processes', num_workers=n_workers)
+    dask_config.set(scheduler='synchronous')  # Use synchronous scheduler for debugging
+    # logger.info(f"Starting parallel processing of {len(tasks)} tasks with {n_workers} workers")
+    logger.info(f"Starting processing of {len(tasks)} tasks with synchronous scheduler for debugging")
     # Create delayed tasks for parallel execution
     delayed_tasks = [delayed(comp_relative_index_sem)(folder, num, indices) for folder, num, indices in tasks]
     
@@ -753,15 +754,15 @@ def main():
     # logger.info("Computing absolute indices for ACE2 ensembles...")
     # compute_absolute_indices_ace2() 
 
-    # Compute relative indices for ERA5
-    logger.info("Computing relative indices for ERA5...")
-    compute_relative_indices_era5()
-    logger.info("Completed computing relative indices for ERA5")
+    # # Compute relative indices for ERA5
+    # logger.info("Computing relative indices for ERA5...")
+    # compute_relative_indices_era5()
+    # logger.info("Completed computing relative indices for ERA5")
 
-    # # Compute relative indices for ACE2 ensembles
-    # logger.info("Computing relative indices for ACE2 ensembles...")
-    # compute_relative_indices_ace2()
-    # logger.info("Completed computing relative indices for ACE2 ensembles")
+    # Compute relative indices for ACE2 ensembles
+    logger.info("Computing relative indices for ACE2 ensembles...")
+    compute_relative_indices_ace2()
+    logger.info("Completed computing relative indices for ACE2 ensembles")
 
 if __name__ == "__main__":
     main()

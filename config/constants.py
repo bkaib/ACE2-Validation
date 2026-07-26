@@ -48,6 +48,13 @@ era5_params = {
     },
 }
 
+domains = {
+	"Northern Hemisphere": {"lat": (20, 90),   "lon": (-180, 180)}, 
+	"North America": {"lat": (20, 80),   "lon": (-170, -50)},
+	"Europe":        {"lat": (30, 75),   "lon": (-30,   40)},
+	"Asia":          {"lat": (20, 75),   "lon": ( 40,  160)},
+    "Southern Hemisphere": {"lat": (-90, -20), "lon": (-180, 180)},
+}
 #-------------
 # ETCCDI related
 #-------------

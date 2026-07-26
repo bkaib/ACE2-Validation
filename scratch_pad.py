@@ -16,60 +16,35 @@ from pathlib import Path
 import os
 import glob
 
-
-# %% Load ensemble data
-p = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/FG95p_1981-2010.nc"
-ds = xr.open_dataset(p)
-
-mean = ds["FG95p"].isel(percentiles=0).sel(time=slice("2001-01-01", "2010-12-31")).mean("time").dt.days # convert time delta to days
-
-fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': ccrs.EqualEarth()})
-mean.plot(ax=ax, transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
-ax.coastlines() 
-ax.gridlines()
-
-#%% Check regridding of 10simean
-var = "WSDI"
-p = f"data/processed/ETCCDI/ACE2/2000v1940/{var}_ensemble_0.nc"
-era5_p = f"data/processed/ETCCDI/ERA5/{var}_1981-2010.nc"
-ds = xr.open_dataset(p)
-era5_ds = xr.open_dataset(era5_p)
-
-data_array_var = var
-era5_ds[data_array_var].values
-
-# Convert the values of the data array from timdelta64[ns] to days
-era5_ds[data_array_var].values = era5_ds[data_array_var].dt.days
-ds[data_array_var].values = ds[data_array_var].dt.days
-
-
-#%% Plot ETCCDI of ERA5 and ACE2 in one figure with subplots for each variable
-# Column 1: ERA5, Column 2: ACE2, Column 3: Difference (ACE2 - ERA5)
-fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5), subplot_kw={'projection': ccrs.EqualEarth()})
-data_ace2 = ds[data_array_var].isel(percentiles=0).mean("time")
-data_era5 = era5_ds[data_array_var].sel(time=slice("2001-01-01", "2010-12-31")).mean("time")
-# Convert type of data from timedelta64[ns] to days
-data_era5.plot(ax=axes[0], transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
-data_ace2.plot(ax=axes[1], transform=ccrs.PlateCarree(), cmap='viridis', alpha=0.5)
-difference = data_ace2 - data_era5
-difference.plot(ax=axes[2], transform=ccrs.PlateCarree(), cmap='bwr', alpha=0.5)
-axes[0].coastlines()
-axes[0].gridlines()
-axes[0].set_title("ERA5")
-axes[1].coastlines()
-axes[1].gridlines()
-axes[1].set_title("ACE2")
-axes[2].coastlines()
-axes[2].gridlines()
-axes[2].set_title("Difference (ACE2 - ERA5)")
-fig.show()
-
 # %% Visualize Absolute Indices
+def load_ace2_etccdi(name, scenario, ensemble_number):
+    base_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/{scenario}"
+    file = os.path.join(base_path, f"{name}_ensemble_{ensemble_number}.nc")
+    ds = xr.open_dataset(file)
+    return ds
 
 indices_temp = ["TXx", "TNn", "ETR"]
 indices_precip = ["Rx1day", "R10", "CWD"]
 indices_wind = ["FXx", "WSD",]
 indices = indices_temp + indices_precip + indices_wind
+
+etccdi_names = [
+    # Temperatur related
+    "ETR",
+    "TN10p",
+    "TNn",
+    "TX90p",
+    "TXx",
+    "WSDI", 
+    # Precipitation related
+    "CWD",
+    "R10",
+    "Rx1day",
+    # Wind related
+    "FXx",
+    "WSD",
+    "FG95p",
+]
 
 vmin_vmax_ranges = dict(
     TXx=(250, 320),
@@ -80,18 +55,33 @@ vmin_vmax_ranges = dict(
     CWD=(0, 20),
     FXx=(0, 30),
     WSD=(0, 3),
+    TN10p = (0, 20),
+    TX90p = (0, 20),
+    WSDI = (0, 20),
+    FG95p = (0, 20),
 )
 
-fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(15, 12), subplot_kw={'projection': ccrs.EqualEarth()})
+# Plot the indices of ERA5 and ACE2 next to each other. Colum1 ERA5: COlumn2 ACE2. Each row one index.
 
-# Temperature indices (row 0)
-for i, idx in enumerate(indices_temp):
-    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
-    
+fig, axes = plt.subplots(nrows=len(etccdi_names), ncols=3, figsize=(15, 12), subplot_kw={'projection': ccrs.EqualEarth()})
+
+# Loop all indices
+for i, idx in enumerate(etccdi_names[:2]):
+    # Load ERA5
+    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc", decode_times=False)
+    ds = ds.sel(time=slice("2001-01-01", "2010-12-31"))
+    era5_mean = ds.mean(dim="time")
+    print(ds.time.values.dtype)
+
+    # Load ACE2 and compute ensemble mean
+    ace2 = xr.concat(
+        [load_ace2_etccdi(idx, scenario, ensemble_number=i) for scenario in ["2000v1940", "2000v1950", "2000v1979", "2000v2020"] for i in range(12)], dim="ensemble_member"
+    )
+    ensemble_mean = ace2.mean(dim="ensemble_member").mean(dim="time")
+
     projection = ccrs.EqualEarth()
-    ax = axes[0, i]
-    (ds[idx]
-     .mean(dim="time")
+    ax = axes[i, 0]
+    (era5_mean[idx]
      .plot(
          ax=ax, 
          transform=ccrs.PlateCarree(), 
@@ -102,19 +92,14 @@ for i, idx in enumerate(indices_temp):
      )
     ax.coastlines()
     ax.gridlines()
-    ax.set_title(f"{idx} Index")
+    ax.set_title(f"{idx} Index | ERA5")
 
-# Precipitation indices (row 1)
-for i, idx in enumerate(indices_precip):
-    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
-    
-    projection = ccrs.EqualEarth()
-    ax = axes[1, i]
-    (ds[idx]
-     .mean(dim="time")
+    # ACE2 Ensemble Mean
+    ax = axes[i, 1]
+    (ensemble_mean[idx]
      .plot(
          ax=ax, 
-         transform=ccrs.PlateCarree(), 
+         transform=ccrs.PlateCarree(),
          cmap='viridis',
         vmin=vmin_vmax_ranges[idx][0],
         vmax=vmin_vmax_ranges[idx][1],
@@ -122,96 +107,26 @@ for i, idx in enumerate(indices_precip):
      )
     ax.coastlines()
     ax.gridlines()
-    ax.set_title(f"{idx} Index")
+    ax.set_title(f"{idx} Index | ACE2 Ensemble Mean")
 
-# Wind indices (row 2)
-for i, idx in enumerate(indices_wind):
-    ds = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/{idx}_1981-2010.nc")
-    
-    projection = ccrs.EqualEarth()
-    ax = axes[2, i]
-    (ds[idx]
-     .mean(dim="time")
+    # Bias (ACE2 - ERA5)
+    ax = axes[i, 2]
+    bias = ensemble_mean[idx] - era5_mean[idx]
+    (bias
      .plot(
          ax=ax, 
-         transform=ccrs.PlateCarree(), 
-         cmap='viridis',
-        vmin=vmin_vmax_ranges[idx][0],
+         transform=ccrs.PlateCarree(),
+         cmap='bwr',
+        vmin=-vmin_vmax_ranges[idx][1],
         vmax=vmin_vmax_ranges[idx][1],
          )
      )
     ax.coastlines()
     ax.gridlines()
-    ax.set_title(f"{idx} Index")
+    ax.set_title(f"{idx} Index | Bias (ACE2 - ERA5)")
 
-# Hide empty subplots in row 2 (wind row only has 2 indices)
-axes[2, 2].set_visible(False)
-
-fig.suptitle("ERA5 ETCCDI Indices | Temporal Mean over 1981-2010", fontsize=16)
+fig.suptitle("ETCCDI Indices | Temporal Mean over 2001-2010", fontsize=16)
 plt.show()
-
-
-
-#%% Look at 10si regridded
-variables = ["10si", 
-             #"TMP2m", 
-             # "PRATEsfc",
-             ]
-PROJECT_ROOT = "/work/gg0304/g260230/projects/ACE2-Validation"
-projection = ccrs.EqualEarth()
-# Compare the regridded and original data for each variable 
-# in one figure with subplots for each variable
-fig, axes = plt.subplots(
-    nrows=len(variables), ncols=2, figsize=(15, 5), 
-    subplot_kw={'projection': projection}
-    )
-var_names = dict(
-    "10si": "10si_max"
-)
-for i, variable in enumerate(variables):
-    BASE_INPUT_REGRID = Path(PROJECT_ROOT) / "data/processed/ERA5/1D/ACE2GRID"
-    BASE_INPUT_ORIG = Path(PROJECT_ROOT) / "data/raw/ERA5/1D/"
-    input_path_regrid = BASE_INPUT_REGRID / variable
-    input_path_orig = BASE_INPUT_ORIG / variable
-    regrid_files = list(input_path_regrid.glob("*.nc"))
-    orig_files = list(input_path_orig.glob("*.nc"))
-
-    regrid_files.sort()
-    orig_files.sort()
-
-    # Load regridded and original data
-    ds_original = xr.open_dataset(orig_files[0])
-    ds_regridded = xr.open_dataset(regrid_files[0])
-
-    data_var_orig = list(ds_original.data_vars)[0]
-    data_var_regrid = list(ds_regridded.data_vars)[0]
-    
-    # Plot data into axes
-    (ds_original[data_var_orig]
-     .mean("time")
-     .plot(ax=axes[i, 0], transform=ccrs.PlateCarree(), cmap='viridis')
-    )
-    axes[i, 0].coastlines()
-    axes[i, 0].set_title(f"Original {variable}")    
-    axes[i, 0].gridlines()
-
-    (ds_regridded[data_var_regrid]
-     .mean("time")
-     .plot(ax=axes[i, 1], transform=ccrs.PlateCarree(), cmap='viridis')
-    )
-    axes[i, 1].coastlines()
-    axes[i, 1].set_title(f"Regridded {variable}")
-    axes[i, 1].gridlines()
-
-fig.suptitle("Comparison of Original and Regridded Data", fontsize=16)
-fig.show()
-
-
-
-
-
-
-
 
 
 
