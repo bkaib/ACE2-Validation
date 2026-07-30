@@ -46,10 +46,10 @@ def regrid_era5_file(file_path, target_grid, output_dir):
     tuple
         (file_name, success: bool)
     """
-    if not "2004" in file_path.name:
-        logger.warning(f"Skipping file: {file_path.name}")
+    # if not "2004" in file_path.name:
+    #     logger.warning(f"Skipping file: {file_path.name}")
         
-        return file_path.name, False
+    #     return file_path.name, False
     
     try:
         logger.info(f"Starting regridding for {file_path.name}")
@@ -85,8 +85,9 @@ def main():
     """Main function to parallelize regridding of ERA5 files for multiple variables."""
     # Variables to process
     variables = [
-        "10si", 
-        #"TMP2m", "PRATEsfc"
+        #"10si", 
+        #"TMP2m", 
+        "PRATEsfc",
         ]
     
     # Load target grid

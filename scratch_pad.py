@@ -16,6 +16,29 @@ from pathlib import Path
 import os
 import glob
 
+#%% Cell
+#%% Investigate precipitation units of ERA5 and ACE2
+
+# ERA5 Precipitation and Conversion of Units
+era5_prate_files = glob.glob(
+        "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/PRATEsfc/daily_sum_*.nc"
+        )
+era5_prate = xr.open_mfdataset(era5_prate_files, combine="by_coords",)
+# era5_prate = era5_prate["prate"] * 1000.0  # Convert from m to mm
+# era5_prate.attrs["units"] = "1 mm/d"
+
+# ACE2 Precipitation and conversion of units
+ensemble_file = "/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ace2-ensembles/1D/2000v1940/ensemble_0.nc"
+ensemble_member = xr.open_dataset(ensemble_file)
+ace2_prate = ensemble_member["pr"]  
+# ace2_prate = ace2_prate * 21600  # Convert to 1 mm/d
+
+# Print some values of both
+era5_prate_values = era5_prate["tp"].isel(time=slice(0, 2)).values
+ace2_prate_values = ace2_prate.isel(time=slice(0, 2)).values
+print("ERA5 Precipitation values (first 2 days):", era5_prate_values)
+print("ACE2 Precipitation values (first 2 days):", ace2_prate_values)
+
 # %% Visualize Absolute Indices
 def load_ace2_etccdi(name, scenario, ensemble_number):
     base_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/{scenario}"

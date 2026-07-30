@@ -54,6 +54,7 @@ domains = {
 	"Europe":        {"lat": (30, 75),   "lon": (-30,   40)},
 	"Asia":          {"lat": (20, 75),   "lon": ( 40,  160)},
     "Southern Hemisphere": {"lat": (-90, -20), "lon": (-180, 180)},
+    "storm_track_atlantic": {"lat": (40, 60), "lon": (-50, -15)},
 }
 #-------------
 # ETCCDI related
@@ -62,7 +63,34 @@ etccdi_baseline = np.arange(1981, 2010 + 1) # 1981-2010 is the baseline period f
 absolute_indices = ["TXx", "TNn", "Rx1day", "FXx",]
 relative_indices = ["R10mm", "TX90p", "TN10p", "FG95p", "WSDI", "CWD"]
 etccdi_indices = {
-    "temperature": ["TXx", "TNn", "TX90p", "TN10p", "WSDI"],
-    "precipitation": ["Rx1day", "R10mm", "CWD"],
-    "wind": ["FXx", "FG95p"],
+    "temperature": ["TXx", "TNn", "ETR", "TX90p", "TN10p", "WSDI"],
+    "precipitation": ["Rx1day", "R10", "CWD"],
+    "wind": ["FXx", "FG95p", "WSD"],
 }
+etccdi_cmaps = {
+    "TXx": "Reds",
+    "TNn": "Blues",
+    "TX90p": "Reds",
+    "TN10p": "Blues",
+    "WSDI": "Purples",
+    "Rx1day": "Blues",
+    "R10": "Blues",
+    "CWD": "Greens",
+    "FXx": "Reds",
+    "FG95p": "Purples",
+}
+etccdi_units = {
+    "ETR": "K",
+    "TXx": "K",
+    "TNn": "K",
+    "TX90p": "days",
+    "TN10p": "days",
+    "WSDI": "days",
+    "Rx1day": "mm/day",
+    "R10": "days",
+    "CWD": "days",
+    "FXx": "m/s",
+    "FG95p": "days",
+    "WSD": "days",
+}
+    

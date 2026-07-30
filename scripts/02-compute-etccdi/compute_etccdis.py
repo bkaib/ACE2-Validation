@@ -63,7 +63,7 @@ def load_era5():
     return era5_tasmax, era5_tasmin, era5_prate, era5_sfcWind_max, era5_sfcWind_mean
 #%% Functions for absolute indices
 def compute_TXx(tasmax: xr.DataArray):
-    TXx = tasmax.resample(time='YE').max(dim='time')
+    TXx = tasmax.resample(time='YS').max(dim='time')
     TXx.name = 'TXx'
     return TXx
 
@@ -78,7 +78,7 @@ def compute_ETR(TXx, TNn):
     return ETR
 
 def compute_Rx1day(pr: xr.DataArray):
-    Rx1day = pr.resample(time='YE').max(dim='time')
+    Rx1day = pr.resample(time='YS').max(dim='time')
     Rx1day.name = 'Rx1day'
     return Rx1day
 
@@ -109,57 +109,57 @@ def compute_WSD(sfcWind_max: xr.DataArray, thresh=20):
 
 def compute_absolute_indices_era5():
     # Load ERA5 data
-    ## Load Tasmax
-    era5_tasmax_files = glob.glob(
-        "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/TMP2m/daily_max_*.nc"
-        )
-    era5_tasmax = xr.open_mfdataset(era5_tasmax_files, combine="by_coords",)
-    era5_tasmax = era5_tasmax["tasmax"]
+    # ## Load Tasmax
+    # era5_tasmax_files = glob.glob(
+    #     "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/TMP2m/daily_max_*.nc"
+    #     )
+    # era5_tasmax = xr.open_mfdataset(era5_tasmax_files, combine="by_coords",)
+    # era5_tasmax = era5_tasmax["tasmax"]
 
-    ## Load Tasmin
-    era5_tasmin_files = glob.glob(
-        "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/TMP2m/daily_min_*.nc"
-        )
-    era5_tasmin = xr.open_mfdataset(era5_tasmin_files, combine="by_coords",)
-    era5_tasmin = era5_tasmin["tasmin"]
+    # ## Load Tasmin
+    # era5_tasmin_files = glob.glob(
+    #     "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/TMP2m/daily_min_*.nc"
+    #     )
+    # era5_tasmin = xr.open_mfdataset(era5_tasmin_files, combine="by_coords",)
+    # era5_tasmin = era5_tasmin["tasmin"]
 
     ## Load Prate
     era5_prate_files = glob.glob(
         "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/PRATEsfc/daily_sum_*.nc"
         )
     era5_prate = xr.open_mfdataset(era5_prate_files, combine="by_coords",)
-    era5_prate = era5_prate["prate"] * 1000.0  # Convert from m to mm
+    era5_prate = era5_prate["tp"] * 1000.0  # Convert from m to mm
     era5_prate.attrs["units"] = "1 mm/d"
 
-    ## Load SfcWind_max
-    era5_sfcWind_max_files = glob.glob(
-        "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/10si/daily_max_*.nc"
-        )
-    era5_sfcWind_max = xr.open_mfdataset(era5_sfcWind_max_files, combine="by_coords",)
-    era5_sfcWind_max = era5_sfcWind_max["10si_max"]
+    # ## Load SfcWind_max
+    # era5_sfcWind_max_files = glob.glob(
+    #     "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/10si/daily_max_*.nc"
+    #     )
+    # era5_sfcWind_max = xr.open_mfdataset(era5_sfcWind_max_files, combine="by_coords",)
+    # era5_sfcWind_max = era5_sfcWind_max["10si_max"]
 
     # Compute absolute indices
-    TXx = compute_TXx(era5_tasmax)
-    TNn = compute_TNn(era5_tasmin)
-    ETR = compute_ETR(TXx, TNn)
+    # TXx = compute_TXx(era5_tasmax)
+    # TNn = compute_TNn(era5_tasmin)
+    # ETR = compute_ETR(TXx, TNn)
     Rx1day = compute_Rx1day(era5_prate)
     R10 = compute_R10(era5_prate)
     CWD = compute_CWD(era5_prate)
-    FXx = compute_FXx(era5_sfcWind_max)
-    WSD = compute_WSD(era5_sfcWind_max, thresh=20)
+    # FXx = compute_FXx(era5_sfcWind_max)
+    # WSD = compute_WSD(era5_sfcWind_max, thresh=20)
 
     # Save indices
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TXx_1981-2010.nc"
-    TXx.to_netcdf(file)
-    logger.info(f"Saved TXx to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TXx_1981-2010.nc"
+    # TXx.to_netcdf(file)
+    # logger.info(f"Saved TXx to {file}")
 
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TNn_1981-2010.nc"
-    TNn.to_netcdf(file)
-    logger.info(f"Saved TNn to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/TNn_1981-2010.nc"
+    # TNn.to_netcdf(file)
+    # logger.info(f"Saved TNn to {file}")
 
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/ETR_1981-2010.nc"
-    ETR.to_netcdf(file)
-    logger.info(f"Saved ETR to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/ETR_1981-2010.nc"
+    # ETR.to_netcdf(file)
+    # logger.info(f"Saved ETR to {file}")
 
     file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/Rx1day_1981-2010.nc"
     Rx1day.to_netcdf(file)
@@ -173,13 +173,13 @@ def compute_absolute_indices_era5():
     CWD.to_netcdf(file)
     logger.info(f"Saved CWD to {file}")
 
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/FXx_1981-2010.nc"
-    FXx.to_netcdf(file)
-    logger.info(f"Saved FXx to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/FXx_1981-2010.nc"
+    # FXx.to_netcdf(file)
+    # logger.info(f"Saved FXx to {file}")
 
-    file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/WSD_1981-2010.nc"
-    WSD.to_netcdf(file)
-    logger.info(f"Saved WSD to {file}")
+    # file = "/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/WSD_1981-2010.nc"
+    # WSD.to_netcdf(file)
+    # logger.info(f"Saved WSD to {file}")
 
 
 def process_single_ensemble_member(ensemble_folder, ensemble_num):
@@ -746,9 +746,9 @@ def compute_relative_indices_ace2():
 
 #%% Main run
 def main():
-    # # Compute absolute indices for ERA5
-    # logger.info("Computing absolute indices for ERA5...")
-    # compute_absolute_indices_era5()
+    # Compute absolute indices for ERA5
+    logger.info("Computing absolute indices for ERA5...")
+    compute_absolute_indices_era5()
     
     # # Compute absolute indices for ACE2 ensembles
     # logger.info("Computing absolute indices for ACE2 ensembles...")
@@ -759,10 +759,10 @@ def main():
     # compute_relative_indices_era5()
     # logger.info("Completed computing relative indices for ERA5")
 
-    # Compute relative indices for ACE2 ensembles
-    logger.info("Computing relative indices for ACE2 ensembles...")
-    compute_relative_indices_ace2()
-    logger.info("Completed computing relative indices for ACE2 ensembles")
+    # # Compute relative indices for ACE2 ensembles
+    # logger.info("Computing relative indices for ACE2 ensembles...")
+    # compute_relative_indices_ace2()
+    # logger.info("Completed computing relative indices for ACE2 ensembles")
 
 if __name__ == "__main__":
     main()

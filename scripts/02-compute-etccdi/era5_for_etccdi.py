@@ -26,7 +26,7 @@ import time
 from dask import delayed, compute, config as dask_config
 import os
 import gc  # Add garbage collection
-
+import glob
 
 # %% Setup Parser
 def parse_arguments() -> argparse.Namespace:
@@ -89,7 +89,7 @@ def preprocess_tmp2m_mfdata(yyyy):
     # Load tmp2m of given year in 1H res
     logger.info(f"Loading TMP2m data for year {yyyy}...")
     tmp2m_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/167/E5sf00_1H_{yyyy}-*.grb")
-    tmp2m = xr.open_mfdataset(tmp2m_files, engine='cfgrib')
+    tmp2m = xr.open_mfdataset(tmp2m_files, engine='cfgrib', indexpath=None)
 
     # Filter the ace2 timestamps for that year
     logger.info(f"Filtering ACE2 timestamps for year {yyyy}...")
@@ -269,7 +269,7 @@ def remap_temperature_with_cdo(yyyy):
         logger.error(f"Error during cleanup of original and remapped files for year {yyyy}: {e}", exc_info=True)
         raise
 
-def preprocess_prate(
+def preprocess_prate_subsampled(
         yyyy,
         ace2_hours = [0, 6, 12, 18],
         ):
@@ -360,13 +360,75 @@ def preprocess_prate(
     daily_sum_ds.to_netcdf(file_sum)
     logger.info(f"Saved daily sum dataset to {file_sum}")
 
+def preprocess_grib_file(ds):
+    """Convert GRIB forecast file to valid_time before combining."""
+    # Stack time and step to get valid_time
+    stacked = ds.stack(ts=('time', 'step'))
+    # Swap to valid_time dimension
+    ds_processed = stacked.swap_dims({'ts': 'valid_time'}).drop_vars('ts')
+    # Drop the original time and step
+    ds_processed = ds_processed.drop_vars(['time', 'step'], errors='ignore')
+    return ds_processed
+
+def preprocess_prate(yyyy):
+    logger.info(f"Loading prate data for year {yyyy}...")
+    prate_files = glob.glob(f"/pool/data/ERA5/E5/sf/fc/1H/228/E5sf12_1H_{yyyy}-*.grb")
+    prate_files.sort()
+    
+    # Load each file individually and collect
+    datasets = []
+    for file in prate_files:
+        logger.info(f"Processing {file}...")
+        ds = xr.open_dataset(file, engine='cfgrib', indexpath=None)
+        # Convert to valid_time
+        stacked = ds.stack(ts=('time', 'step'))
+        ds_vt = stacked.swap_dims({'ts': 'valid_time'}).drop_vars('ts')
+        ds_vt = ds_vt.drop_vars(['time', 'step'], errors='ignore')
+        ds_vt = ds_vt.rename({'valid_time': 'time'})
+        datasets.append(ds_vt)
+        ds.close()
+    
+    # Concatenate all datasets
+    logger.info(f"Concatenating {len(datasets)} files...")
+    combined = xr.concat(datasets, dim='time')
+    
+    # Filter to current year only
+    mask = combined.time.dt.year == yyyy
+    filtered_data = combined.where(mask, drop=True)
+    
+    # Sort and drop duplicates
+    filtered_data = filtered_data.sortby('time')
+    _, index = np.unique(filtered_data['time'], return_index=True)
+    filtered_data = filtered_data.isel(time=index)
+
+    # Compute Daily Sum
+    prate_sum = filtered_data.resample(time='1D').sum()
+
+    # Drop unnecessary variables
+    prate_sum = prate_sum.drop_vars(['surface', 'number'], errors='ignore')
+
+    ## Save prate_sum to NetCDF
+    logger.info(f"Saving daily sum of prate to NetCDF for year {yyyy}...")
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/PRATEsfc/daily_sum_{yyyy}_tmp.nc"
+    prate_sum.to_netcdf(output_path)
+    logger.info(f"Saved daily sum of prate to {output_path}")
+
+    # Free RAM
+    for ds in datasets:
+        ds.close()
+    combined.close()
+    filtered_data.close()
+    prate_sum.close()
+    del datasets, combined, filtered_data, prate_sum
+    gc.collect()
+
 def remap_prate_with_cdo(yyyy):
     from cdo import Cdo
     logger.info(f"Starting CDO remapping of the preprocessed PRATE data")
     cdo = Cdo()
     target_grid_file = "/work/gg0304/g260230/GRIDS/era5_grid.txt" # Target grid for remapping
-    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/PRATEsfc/daily_sum_{yyyy}.nc"
-    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/era5/1D/PRATEsfc/remapped_daily_sum_{yyyy}.nc" # Temporary output file for remapped data
+    input_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/PRATEsfc/daily_sum_{yyyy}_tmp.nc"
+    temp_output_file_sum = f"/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/PRATEsfc/remapped_daily_sum_{yyyy}.nc" # Temporary output file for remapped data
 
     # Remap Sum
     try:
@@ -401,8 +463,8 @@ def preprocess_wind_speed(yyyy):
     logger.info(f"Loading U10 and V10 data for year {yyyy}...")
     u10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/165/E5sf00_1H_{yyyy}-*.grb")
     v10_files = glob.glob(f"/pool/data/ERA5/E5/sf/an/1H/166/E5sf00_1H_{yyyy}-*.grb")
-    u10 = xr.open_mfdataset(u10_files, engine='cfgrib')
-    v10 = xr.open_mfdataset(v10_files, engine='cfgrib')
+    u10 = xr.open_mfdataset(u10_files, engine='cfgrib', indexpath=None)
+    v10 = xr.open_mfdataset(v10_files, engine='cfgrib', indexpath=None)
 
     # Filter the ace2 timestamps for that year
     logger.info(f"Filtering ACE2 timestamps for year {yyyy}...")
@@ -485,8 +547,10 @@ def process_single_year(yyyy):
     """Process a single year - wraps preprocess and remap."""
     try:
         logger.info(f"Starting processing for year {yyyy}")
-        preprocess_wind_speed(yyyy)
-        remap_10si_with_cdo(yyyy)
+        # preprocess_wind_speed(yyyy)
+        # remap_10si_with_cdo(yyyy)
+        preprocess_prate(yyyy)
+        remap_prate_with_cdo(yyyy)
         logger.info(f"Successfully completed processing for year {yyyy}")
         return yyyy, True
     except Exception as e:
@@ -494,14 +558,13 @@ def process_single_year(yyyy):
         return yyyy, False
 
 def main():
-    # TODO: The preprocessing functions of tmp2m and prate need to be adjusted to the idea of the preprocessing of windspeed.
-    # e.g. loading all files of one year at once and then computing to maximize RAM.
     years = range(1981, 2010 + 1)
-    years = [2004,]
     # Configure Dask for HPC environment
-    n_workers = 10  # Increase if memory permits; decrease if you hit memory limits
-    dask_config.set(scheduler='processes', num_workers=n_workers)
-    logger.info(f"Starting parallel processing of {len(years)} years with {n_workers} workers")
+    scheduler = 'synchronous'  # Use 'processes' for multi-processing; 'threads' for multi-threading
+    n_workers = 2  # Increase if memory permits; decrease if you hit memory limits
+    dask_config.set(scheduler=scheduler,)
+    # dask_config.set(scheduler='processes', num_workers=n_workers)
+    logger.info(f"Starting processing of {len(years)} years with scheduler: {scheduler}, and {n_workers} workers")
     delayed_tasks = [delayed(process_single_year)(yyyy) for yyyy in years]
     
     # Compute all tasks in parallel
