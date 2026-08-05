@@ -35,7 +35,7 @@ def load_era5_etccdi(name, timeperiod="1981-2010"):
 
 def load_ace2_etccdi(name, scenario, ensemble_number):
     base_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/{scenario}"
-    file = os.path.join(base_path, f"{name}_ensemble_{ensemble_number}_converted.nc")
+    file = os.path.join(base_path, f"{name}_ensemble_{ensemble_number}.nc")
     ds = xr.open_dataset(file)
     return ds
 
@@ -235,6 +235,7 @@ def plot_spatial_comparison():
 #%% Wrapper
 def compute_ace2_ensemble_mean():
     """Computes ensemble mean of ACE2 simulations for all ETCCDI indices in parallel using Dask."""
+    etccdi_names = ["CWD"]
     delayed_tasks = [delayed(ace2_ensemble_mean)(name) for name in etccdi_names]
     compute(*delayed_tasks, scheduler="processes", num_workers=4)
     logger.info(f"Completed processing all {len(etccdi_names)} indices")
@@ -244,7 +245,7 @@ def main():
     # Compute Ensemble Mean for all ETCCDI indices in parallel
     # compute_ace2_ensemble_mean()
 
-    # Spatial Comparison of ERA5, ACE2 and Bias
+    # # Spatial Comparison of ERA5, ACE2 and Bias
     figs = plot_spatial_comparison()
     for i, fig in enumerate(figs):
         fig.savefig(f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/03-etccdi-validation/spatial_comparison_{i}.png", dpi=300)

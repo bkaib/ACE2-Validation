@@ -56,7 +56,7 @@ def ace2_ensemble_mean(name):
     # Save the mean to a new netcdf file 
     ensemble_mean.to_netcdf(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/ensemble_mean/{name}_ensemble_mean.nc")
 
-def aggregate_index_over_domain(ds, index_name, use_lat_weights=True):
+def aggregate_index_over_domain(ds, use_lat_weights=True):
     """
     Aggregate an ETCCDI index over a spatial domain.
     
@@ -77,23 +77,12 @@ def aggregate_index_over_domain(ds, index_name, use_lat_weights=True):
     xr.Dataset
         Spatially aggregated dataset with only time dimension
     """
-    precipitation_indices = constants.etccdi_indices["precipitation"]
-    
     if use_lat_weights:
         weights = np.cos(np.deg2rad(ds.lat))
         weighted_ds = ds.weighted(xr.DataArray(weights, coords=[ds.lat], dims=['lat']))
-        
-        if index_name in precipitation_indices:
-            # Use sum for precipitation indices
-            return weighted_ds.sum(dim=['lat', 'lon'])
-        else:
-            # Use mean for temperature and wind indices
-            return weighted_ds.mean(dim=['lat', 'lon'])
+        return weighted_ds.mean(dim=['lat', 'lon'])
     else:
-        if index_name in precipitation_indices:
-            return ds.sum(dim=['lat', 'lon'])
-        else:
-            return ds.mean(dim=['lat', 'lon'])
+        return ds.mean(dim=['lat', 'lon'])
 
 def load_all_ace2_ensembles(name):
     """
@@ -121,7 +110,6 @@ def load_all_ace2_ensembles(name):
     # Concatenate all ensembles
     ace2_all = xr.concat(all_ensembles, dim="ensemble_member")
     return ace2_all
-
 
 def compute_temporal_aggregation(name, domain_name=None):
     """
@@ -157,6 +145,16 @@ def compute_temporal_aggregation(name, domain_name=None):
     # 4. Select domain (if specified)
     if domain_name is not None:
         domain = constants.domains[domain_name]
+
+        # First convert ERA5 and ACE2 longitudes from 0-360 to -180 to 180 if necessary
+        if era5_ds.lon.max() > 180:
+            era5_ds = era5_ds.assign_coords(lon=(((era5_ds.lon + 180) % 360) - 180)).sortby('lon')
+        if ace2_mean_ds.lon.max() > 180:
+            ace2_mean_ds = ace2_mean_ds.assign_coords(lon=(((ace2_mean_ds.lon + 180) % 360) - 180)).sortby('lon')
+        if ace2_all_ds.lon.max() > 180:
+            ace2_all_ds = ace2_all_ds.assign_coords(lon=(((ace2_all_ds.lon + 180) % 360) - 180)).sortby('lon')  
+
+        # Slice domain
         era5_ds = era5_ds.sel(lat=slice(domain["lat"][0], domain["lat"][1]), 
                               lon=slice(domain["lon"][0], domain["lon"][1]))
         ace2_mean_ds = ace2_mean_ds.sel(lat=slice(domain["lat"][0], domain["lat"][1]), 
@@ -165,9 +163,9 @@ def compute_temporal_aggregation(name, domain_name=None):
                                        lon=slice(domain["lon"][0], domain["lon"][1]))
     
     # 5. Aggregate spatially
-    era5_agg = aggregate_index_over_domain(era5_ds, name, use_lat_weights=True)
-    ace2_mean_agg = aggregate_index_over_domain(ace2_mean_ds, name, use_lat_weights=True)
-    ace2_all_agg = aggregate_index_over_domain(ace2_all_ds, name, use_lat_weights=True)
+    era5_agg = aggregate_index_over_domain(era5_ds, use_lat_weights=True)
+    ace2_mean_agg = aggregate_index_over_domain(ace2_mean_ds, use_lat_weights=True)
+    ace2_all_agg = aggregate_index_over_domain(ace2_all_ds, use_lat_weights=True)
     
     # 6. Save time series data
     domain_str = domain_name if domain_name else "Global"
@@ -216,25 +214,32 @@ def plot_temporal_comparison_for_domain(domain_name=None):
     axes = axes.flatten() if n_indices > 1 else [axes]
     
     # Plot each ETCCDI
+    handles = None
     for idx, name in enumerate(all_indices):
         ax = axes[idx]
         
         try:
             # Load time series data
+            print(f"Loading time series for {name} in domain {domain_str}")
             era5_folder = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/temporal_aggregation/{domain_str}/"
             ace2_folder = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/temporal_aggregation/{domain_str}/"
             
             era5_ts = xr.open_dataset(os.path.join(era5_folder, f"{name}.nc"))
             ace2_mean_ts = xr.open_dataset(os.path.join(ace2_folder, f"{name}_ensemble_mean.nc"))
             ace2_all_ts = xr.open_dataset(os.path.join(ace2_folder, f"{name}_all_ensembles.nc"))
-            
+
+            # Drop percentiles dimension if present in ACE2 datasets
+            if "percentiles" in ace2_all_ts.dims:
+                ace2_all_ts = ace2_all_ts.isel(percentiles = 0)
+            if "percentiles" in ace2_mean_ts.dims:
+                ace2_mean_ts = ace2_mean_ts.isel(percentiles = 0)
+
             # Get variable names (they might differ between ERA5 and ACE2)
-            era5_var = list(era5_ts.data_vars.keys())[0]
-            ace2_var = list(ace2_mean_ts.data_vars.keys())[0]
+            era5_var = list(era5_ts.data_vars)[0]
+            ace2_var = list(ace2_mean_ts.data_vars)[0]
             
             # Extract time and values
-            time_era5 = era5_ts['time'].values
-            time_ace2 = ace2_mean_ts['time'].values
+            time_dates = pd.date_range(start="2001-01-01", end="2010-12-31", freq="YS")
             
             era5_values = era5_ts[era5_var].values
             ace2_mean_values = ace2_mean_ts[ace2_var].values
@@ -244,20 +249,23 @@ def plot_temporal_comparison_for_domain(domain_name=None):
             ace2_max = ace2_all_ts[ace2_var].max(dim='ensemble_member').values
             
             # Plot ERA5
-            ax.plot(time_era5, era5_values, color='black', linewidth=2, label='ERA5', marker='o')
+            ax.plot(time_dates, era5_values, color='black', linewidth=2, label='ERA5', marker='o')
             
             # Plot ACE2 ensemble mean
-            ax.plot(time_ace2, ace2_mean_values, color='red', linewidth=2, label='ACE2 Ensemble Mean', marker='s')
+            ax.plot(time_dates, ace2_mean_values, color='red', linewidth=2, label='ACE2 Ensemble Mean', marker='s')
             
             # Plot ensemble spread (shaded region)
-            ax.fill_between(time_ace2, ace2_min, ace2_max, color='red', alpha=0.3, label='ACE2 Ensemble Spread')
+            ax.fill_between(time_dates, ace2_min, ace2_max, color='red', alpha=0.3, label='ACE2 Ensemble Spread')
+            
+            # Capture handles and labels from first plot for shared legend
+            if handles is None:
+                handles, labels = ax.get_legend_handles_labels()
             
             # Formatting
             ax.set_xlabel('Year', fontsize=10)
             unit = constants.etccdi_units.get(name, '')
             ax.set_ylabel(f"{name} ({unit})", fontsize=10)
             ax.set_title(f"{name}", fontsize=12, fontweight='bold')
-            ax.legend(fontsize=8, loc='best')
             ax.grid(True, alpha=0.3)
             
         except FileNotFoundError as e:
@@ -270,13 +278,22 @@ def plot_temporal_comparison_for_domain(domain_name=None):
     for idx in range(n_indices, len(axes)):
         fig.delaxes(axes[idx])
     
+    # Add single legend in the top right
+    if handles is not None:
+        fig.legend(
+            handles, 
+            labels, 
+            loc='upper right', 
+            fontsize=10, 
+            bbox_to_anchor=(1.05, 1.0)
+            )
+    
     # Overall title
-    fig.suptitle(f"Temporal Comparison of ETCCDI Indices - {domain_str}", 
+    fig.suptitle(f"Interannual variability of ETCCDI Indices - {domain_str}", 
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
     return fig
-
 
 def plot_spatial_comparison():
     # Constants
@@ -463,3 +480,4 @@ def main():
 if __name__ == "__main__":
     main()
 
+    

@@ -21,36 +21,41 @@ logger, queue_listener = setup_parallel_logger(current_filename, use_queue_liste
 #---
 # ERA5 Loading
 #---
-def load_era5_sfcWindmax(start_year, end_year):
+def load_era5_sfcWindmax(start_year, end_year, months=None):
     """
     Load ERA5 data for the sfcWindmax variable and time range.
     """
     files = glob.glob(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ERA5/1D/ACE2GRID/10si/daily_max_*.nc")
     files.sort()
     ds = xr.open_mfdataset(files, combine="by_coords").sel(time=slice(f"{start_year}-01-01", f"{end_year}-12-31"))
+    if months is not None:
+        ds = ds.sel(time=ds['time.month'].isin(months))
     return ds
 
 #---
 # ACE2 Loading
 #---
-def load_ace2_ensemble_member(var_name, scenario, ensemble_number):
+def load_ace2_ensemble_member(var_name, scenario, ensemble_number, months=None):
     """Load a single ACE2 ensemble member."""
     base_path = f"/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ace2-ensembles/1D/{scenario}"
     file = os.path.join(base_path, f"ensemble_{ensemble_number}.nc")
     ds = xr.open_dataset(file)
+    if months is not None:
+        ds = ds.sel(time=ds['time.month'].isin(months))
     da = ds[var_name]
     ds = da.to_dataset(name=var_name)
     return ds
 
-def load_ace2_ensemble(var_name, n_members=12):
+def load_ace2_ensemble(var_name, n_members=12, months=None):
     """Loads all ensemble members of the ensemble into one dataset"""
     all_scenarios_ds = []
     for scenario in ["2000v1940", "2000v1950", "2000v1979", "2000v2020"]:
         _members_ds = xr.concat(
-            [load_ace2_ensemble_member(var_name, scenario, ensemble_number=i) for i in range(0, n_members)], dim="ensemble_member"
+            [load_ace2_ensemble_member(var_name, scenario, ensemble_number=i, months=months) for i in range(0, n_members)], dim="ensemble_member"
             )
         all_scenarios_ds.append(_members_ds)
     all_scenarios_ds = xr.concat(all_scenarios_ds, dim="scenario")
+
     return all_scenarios_ds
 
 #---
@@ -216,6 +221,7 @@ def decorrelation_timescale(acf_values, threshold=1/np.e):
 #---
 def ensemble_acf_analysis(var_name='sfcWind_max', region_name='storm_track_atlantic', 
                          start_year=2001, end_year=2010, max_lag=15, n_members=12,
+                         months = None,
                          include_gridpoints=False):
     """
     Compute ACF for all 48 ensemble members and ERA5.
@@ -259,7 +265,7 @@ def ensemble_acf_analysis(var_name='sfcWind_max', region_name='storm_track_atlan
     
     # Load ERA5
     logger.info("Loading ERA5 data...")
-    era5_data = load_era5_sfcWindmax(start_year, end_year)
+    era5_data = load_era5_sfcWindmax(start_year, end_year, months=months)
     era5_var = list(era5_data.data_vars)[0]
     
     # Convert longitude to -180 to 180
@@ -293,7 +299,7 @@ def ensemble_acf_analysis(var_name='sfcWind_max', region_name='storm_track_atlan
             member_count += 1
             logger.info(f"Processing member {member_count}/48: {scenario} ensemble {ens}")
             
-            ace2_data = load_ace2_ensemble_member(var_name, scenario, ens)
+            ace2_data = load_ace2_ensemble_member(var_name, scenario, ens, months=months)
             
             # Convert longitude to -180 to 180
             ace2_data = ace2_data.assign_coords(lon=(((ace2_data.lon + 180) % 360) - 180)).sortby('lon')
@@ -621,8 +627,9 @@ def main():
     start_year = 2001
     end_year = 2010
     max_lag = 15
-    n_members = 12
-    output_dir = "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/03-etccdi-validation"
+    n_members = 12 # Members per scenario! e.g. 12 * scenarios = 48 total members
+    months = [12, 1, 2,]
+    output_dir = "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/03-etccdi-validation/tmp/"
     
     # Regions to analyze
     storm_track_regions = [
@@ -644,6 +651,7 @@ def main():
             end_year=end_year,
             max_lag=max_lag,
             n_members=n_members,
+            months=months,
             include_gridpoints=True
         )
         

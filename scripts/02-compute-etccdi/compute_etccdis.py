@@ -206,51 +206,51 @@ def process_single_ensemble_member(ensemble_folder, ensemble_num):
         ace2_sfcWind_max = ds["sfcWind_max"]
         
         # Compute absolute indices
-        TXx = compute_TXx(ace2_tasmax)
-        TNn = compute_TNn(ace2_tasmin)
-        ETR = compute_ETR(TXx, TNn)
-        Rx1day = compute_Rx1day(ace2_prate)
-        R10 = compute_R10(ace2_prate)
+        # TXx = compute_TXx(ace2_tasmax)
+        # TNn = compute_TNn(ace2_tasmin)
+        # ETR = compute_ETR(TXx, TNn)
+        # Rx1day = compute_Rx1day(ace2_prate)
+        # R10 = compute_R10(ace2_prate)
         CWD = compute_CWD(ace2_prate)
-        FXx = compute_FXx(ace2_sfcWind_max)
-        WSD = compute_WSD(ace2_sfcWind_max, thresh=20)
+        # FXx = compute_FXx(ace2_sfcWind_max)
+        # WSD = compute_WSD(ace2_sfcWind_max, thresh=20)
         
         # Create output directory if it doesn't exist
         output_dir = os.path.join(output_base_path, ensemble_folder)
         os.makedirs(output_dir, exist_ok=True)
         
         # Save indices
-        file = os.path.join(output_dir, f"TXx_ensemble_{ensemble_num}.nc")
-        TXx.to_netcdf(file)
-        logger.info(f"  Saved TXx to {file}")
+        # file = os.path.join(output_dir, f"TXx_ensemble_{ensemble_num}.nc")
+        # TXx.to_netcdf(file)
+        # logger.info(f"  Saved TXx to {file}")
         
-        file = os.path.join(output_dir, f"TNn_ensemble_{ensemble_num}.nc")
-        TNn.to_netcdf(file)
-        logger.info(f"  Saved TNn to {file}")
+        # file = os.path.join(output_dir, f"TNn_ensemble_{ensemble_num}.nc")
+        # TNn.to_netcdf(file)
+        # logger.info(f"  Saved TNn to {file}")
 
-        file = os.path.join(output_dir, f"ETR_ensemble_{ensemble_num}.nc")
-        ETR.to_netcdf(file)
-        logger.info(f"  Saved ETR to {file}")
+        # file = os.path.join(output_dir, f"ETR_ensemble_{ensemble_num}.nc")
+        # ETR.to_netcdf(file)
+        # logger.info(f"  Saved ETR to {file}")
         
-        file = os.path.join(output_dir, f"Rx1day_ensemble_{ensemble_num}.nc")
-        Rx1day.to_netcdf(file)
-        logger.info(f"  Saved Rx1day to {file}")
+        # file = os.path.join(output_dir, f"Rx1day_ensemble_{ensemble_num}.nc")
+        # Rx1day.to_netcdf(file)
+        # logger.info(f"  Saved Rx1day to {file}")
         
-        file = os.path.join(output_dir, f"R10_ensemble_{ensemble_num}.nc")
-        R10.to_netcdf(file)
-        logger.info(f"  Saved R10 to {file}")
+        # file = os.path.join(output_dir, f"R10_ensemble_{ensemble_num}.nc")
+        # R10.to_netcdf(file)
+        # logger.info(f"  Saved R10 to {file}")
         
         file = os.path.join(output_dir, f"CWD_ensemble_{ensemble_num}.nc")
         CWD.to_netcdf(file)
         logger.info(f"  Saved CWD to {file}")
         
-        file = os.path.join(output_dir, f"FXx_ensemble_{ensemble_num}.nc")
-        FXx.to_netcdf(file)
-        logger.info(f"  Saved FXx to {file}")
+        # file = os.path.join(output_dir, f"FXx_ensemble_{ensemble_num}.nc")
+        # FXx.to_netcdf(file)
+        # logger.info(f"  Saved FXx to {file}")
 
-        file = os.path.join(output_dir, f"WSD_ensemble_{ensemble_num}.nc")
-        WSD.to_netcdf(file)
-        logger.info(f"  Saved WSD to {file}")
+        # file = os.path.join(output_dir, f"WSD_ensemble_{ensemble_num}.nc")
+        # WSD.to_netcdf(file)
+        # logger.info(f"  Saved WSD to {file}")
         
         # Close the dataset
         ds.close()
@@ -281,7 +281,7 @@ def compute_absolute_indices_ace2():
             tasks.append((ensemble_folder, ensemble_num))
     
     # Configure Dask for HPC environment
-    n_workers = 10  # Adjust based on available memory and CPU cores
+    n_workers = 4  # Adjust based on available memory and CPU cores
     dask_config.set(scheduler='processes', num_workers=n_workers)
     logger.info(f"Starting parallel processing of {len(tasks)} ensemble members with {n_workers} workers")
     
@@ -746,13 +746,13 @@ def compute_relative_indices_ace2():
 
 #%% Main run
 def main():
-    # Compute absolute indices for ERA5
-    logger.info("Computing absolute indices for ERA5...")
-    compute_absolute_indices_era5()
+    # # Compute absolute indices for ERA5
+    # logger.info("Computing absolute indices for ERA5...")
+    # compute_absolute_indices_era5()
     
-    # # Compute absolute indices for ACE2 ensembles
-    # logger.info("Computing absolute indices for ACE2 ensembles...")
-    # compute_absolute_indices_ace2() 
+    # Compute absolute indices for ACE2 ensembles
+    logger.info("Computing absolute indices for ACE2 ensembles...")
+    compute_absolute_indices_ace2() 
 
     # # Compute relative indices for ERA5
     # logger.info("Computing relative indices for ERA5...")
