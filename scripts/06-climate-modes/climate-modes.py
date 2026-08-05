@@ -86,31 +86,6 @@ def compute_nao_index(da):
 #---
 # Visualisations
 #---
-def plot_nao_index(pca_metrics):
-    """Plot the spatial pattern and timeseries of the NAO index based on PCA of ACE2 Pressure Data"""
-
-    fig, axes = plt.subplots(1, 2, figsize=(15, 5), subplot_kw={'projection': ccrs.EqualEarth()})
-
-    # Spatial Pattern of NAO Index
-    pca_metrics["loadings"].sel(mode=1).plot.contourf(
-        ax=axes[0], 
-        transform=ccrs.PlateCarree(), 
-        cmap="coolwarm", 
-        levels=20,
-        cbar_ax = fig.add_axes([0.25, 0.1, 0.5, 0.02]),  # Put colorbar under the plot
-        cbar_kwargs = {"orientation": "horizontal"}
-        )
-    axes[0].coastlines()
-    axes[0].gridlines(draw_labels=True)
-
-    # Plot Temporal Pattern
-    pca_metrics["principal_components"].sel(mode=1).plot(ax=axes[1])
-    axes[1].set_xlabel("Time") # plot time on x axis
-    axes[1].set_ylabel("NAO Index (PC1)") # plot NAO index on y axis
-
-    fig.show()
-
-    return fig
 
 def compare_climate_mode(
         ace2_metrics, era5_metrics, mode=1, 
@@ -119,7 +94,15 @@ def compare_climate_mode(
         is_saved=True):
     """Compare the spatial pattern and timeseries of the NAO index based on PCA of ACE2 Pressure Data and ERA5 Pressure Data"""
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 10), subplot_kw={'projection': ccrs.EqualEarth()})
+    # Create figure with mixed subplot types
+    fig = plt.figure(figsize=(18, 6))
+    
+    # Create two map subplots with projection
+    ax0 = fig.add_subplot(1, 3, 1, projection=ccrs.EqualEarth())
+    ax1 = fig.add_subplot(1, 3, 2, projection=ccrs.EqualEarth())
+    
+    # Create regular subplot for time series (no projection)
+    ax2 = fig.add_subplot(1, 3, 3)
 
     # Check if spatial pattern has same sign
     ref_lat, ref_lon = 38.0, -28.0 # Azores region
@@ -129,43 +112,87 @@ def compare_climate_mode(
         ace2_metrics["loadings"] = ace2_metrics["loadings"] * -1
         ace2_metrics["principal_components"] = ace2_metrics["principal_components"] * -1
 
-    # Spatial Pattern of NAO Index
-    ace2_metrics["loadings"].sel(mode=mode).plot.contourf(
-        ax=axes[1], 
+    # Get data for plotting
+    era5_loadings = era5_metrics["loadings"].sel(mode=mode)
+    ace2_loadings = ace2_metrics["loadings"].sel(mode=mode)
+    
+    # Find common value range for consistent colorbar
+    vmin = min(era5_loadings.min().values, ace2_loadings.min().values)
+    vmax = max(era5_loadings.max().values, ace2_loadings.max().values)
+    
+    # Make symmetric around zero for diverging colormap
+    vlim = max(abs(vmin), abs(vmax))
+    
+    # Compute spatial correlation
+    # Flatten and compute correlation
+    era5_flat = era5_loadings.values.flatten()
+    ace2_flat = ace2_loadings.values.flatten()
+    # Remove NaN values for correlation
+    valid_mask = ~(np.isnan(era5_flat) | np.isnan(ace2_flat))
+    spatial_corr = np.corrcoef(era5_flat[valid_mask], ace2_flat[valid_mask])[0, 1]
+    
+    # Spatial Pattern of NAO Index - ERA5
+    era5_loadings.plot.contourf(
+        ax=ax0, 
         transform=ccrs.PlateCarree(), 
         cmap="coolwarm", 
         levels=20,
-        cbar_ax = fig.add_axes([0.25, 0.1, 0.5, 0.02]),  # Put colorbar under the plot
-        cbar_kwargs = {"orientation": "horizontal"}
+        vmin=-vlim,
+        vmax=vlim,
+        add_colorbar=False
         )
-    axes[1].coastlines()
-    axes[1].gridlines(draw_labels=True)
-    axes[1].set_title("ACE2 (PC1)")
+    ax0.coastlines()
+    gl0 = ax0.gridlines(draw_labels=True)
+    gl0.top_labels = False
+    gl0.right_labels = False
+    ax0.set_title("ERA5 (PC1)", pad=20)
 
-    era5_metrics["loadings"].sel(mode=mode).plot.contourf(
-        ax=axes[0], 
+    # Spatial Pattern of NAO Index - ACE2
+    im = ace2_loadings.plot.contourf(
+        ax=ax1, 
         transform=ccrs.PlateCarree(), 
         cmap="coolwarm", 
         levels=20,
-        cbar_ax = fig.add_axes([0.25, 0.1, 0.5, 0.02]),  # Put colorbar under the plot
-        cbar_kwargs = {"orientation": "horizontal"}
+        vmin=-vlim,
+        vmax=vlim,
+        add_colorbar=False
         )
-    axes[0].coastlines()
-    axes[0].gridlines(draw_labels=True)
-    axes[0].set_title("ERA5 (PC1)")
+    ax1.coastlines()
+    gl1 = ax1.gridlines(draw_labels=True)
+    gl1.top_labels = False
+    gl1.right_labels = False
+    ax1.set_title("ACE2 (PC1)", pad=20)
+    
+    # Add shared colorbar below the spatial plots
+    cbar_ax = fig.add_axes([0.1, 0.08, 0.5, 0.02])
+    cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
+    cbar.set_label('Pressure Loading (hPa)', fontsize=10)
 
+    # Get temporal data
+    ace2_pcs = ace2_metrics["principal_components"].sel(mode=mode)
+    era5_pcs = era5_metrics["principal_components"].sel(mode=mode)
+    
+    # Compute temporal correlation
+    temporal_corr = np.corrcoef(ace2_pcs.values, era5_pcs.values)[0, 1]
+    
     # Plot Temporal Pattern
-    ace2_metrics["principal_components"].sel(mode=mode).plot(ax=axes[2], label="ACE2")
-    era5_metrics["principal_components"].sel(mode=mode).plot(ax=axes[2], label="ERA5")
-    era5_metrics["principal_components"].sel(mode=mode).plot(ax=axes[2])
-    axes[2].set_xlabel("Time") # plot time on x axis
-    axes[2].set_ylabel("PC1") # plot NAO index on y axis
-    axes[2].set_title("ACE2 and ERA5 PC-Scores")
-    axes[2].legend(bbox_to_anchor=(1.0, 1.05), loc='upper right')
+    ace2_pcs.plot(ax=ax2, label="ACE2", linewidth=1.5)
+    era5_pcs.plot(ax=ax2, label="ERA5", linewidth=1.5)
+    ax2.set_xlabel("Time")
+    ax2.set_ylabel("PC1 (normalized)")
+    ax2.set_title(f"PC-Scores (Temporal Corr: {temporal_corr:.3f})", pad=10)
+    ax2.legend(loc='upper right')
+    ax2.grid(True, alpha=0.3)
+    
+    # Add overall figure title with correlations
+    fig.suptitle(f"Climate Mode Comparison (Mode {mode}) - Spatial Corr: {spatial_corr:.3f}", 
+                 fontsize=14, y=0.98)
+    
+    plt.tight_layout(rect=[0, 0.12, 1, 0.96])
 
     if is_saved:
         os.makedirs(output_dir, exist_ok=True)
-        fig.savefig(f"{output_dir}/{file}_{mode}.png", dpi=300)
+        fig.savefig(f"{output_dir}/{file}_mode{mode}.png", dpi=300, bbox_inches='tight')
 
     return fig
 
