@@ -137,7 +137,7 @@ def load_ace2_ensemble(var_name, n_members=12):
 #---
 # PDF Comparisons
 #---
-def plot_pdf_enveloped(var_name):
+def plot_pdf_enveloped(var_name, is_legend=True,):
     """
     plot the mean PDF (average the 48 member PDF lines) over all ensemble members as a solid line for a given variable,
     along with a shaded band showing the 5th–95th percentile envelope across all 48 members.
@@ -191,29 +191,31 @@ def plot_pdf_enveloped(var_name):
     # Plot the mean PDF, ERA5 PDF and the envelope as a shaded area
     fig, ax = plt.subplots(figsize=(8, 6))
     bin_centers = (bins[:-1] + bins[1:]) / 2
-    ax.plot(bin_centers, mean_pdf, label="ACE2 Ensemble Mean PDF", linewidth=2, color='blue')
+    ax.plot(bin_centers, mean_pdf, label="ACE2 Ensemble Mean", linewidth=2, color='tab:blue')
 
     # Plot ERA5 PDF
     era5_data = era5_ds[era5_var].values.flatten()
     hist_era5, _ = np.histogram(era5_data, bins=bins, density=True)
-    ax.plot(bin_centers, hist_era5, label="ERA5 PDF", linewidth=2, color='red')
+    ax.plot(bin_centers, hist_era5, label="ERA5", linewidth=2, color='tab:orange')
 
     # Plot the envelope as a shaded area
     lower = np.percentile(pdfs, 5, axis=0)
     upper = np.percentile(pdfs, 95, axis=0)
     max_spread = np.max(upper - lower)
     ax.fill_between(bin_centers, lower, upper, color='blue', alpha=0.3)
-    # Add dashed boundary lines for the envelope
-    ax.plot(bin_centers, lower, linestyle='--', color='blue', alpha=0.5, label='5th Percentile')
-    ax.plot(bin_centers, upper, linestyle='--', color='blue', alpha=0.5, label='95th Percentile')
+    # # Add dashed boundary lines for the envelope
+    # ax.plot(bin_centers, lower, linestyle='--', color='blue', alpha=0.5, label='5th Percentile')
+    # ax.plot(bin_centers, upper, linestyle='--', color='blue', alpha=0.5, label='95th Percentile')
 
-    ax.set_xlabel(f"{var_name} ({units[var_name]})")
-    ax.set_ylabel("Probability Density")
+    ax.set_xlabel(f"{units[var_name]}", fontsize=16)
+    ax.set_ylabel("Probability Density", fontsize=16)
     # Inside your plot function:
     if var_name == "pr":
         ax.set_yscale('log')  # Essential for precipitation heavy tails
-    ax.set_title(f"PDF {var_name} | max spread: {max_spread:.2f} | 5th-95th percentile envelope")
-    ax.legend()
+    ax.set_title(f"{var_name}", fontsize=20)
+
+    if is_legend:
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left", borderaxespad=0)
 
     return fig
 
@@ -232,10 +234,11 @@ def main():
     #---
     # Create plot of all PDFs for each variable.   
     all_figs = []
-    for var_name in ace2_vars:
+    for i, var_name in enumerate(ace2_vars):
+        is_legend = True if i == 1 else False  # Only show legend for the second plot
         # Generate figure of PDFs for current variable and save to file
         logger.info(f"Processing {var_name}...")
-        fig = plot_pdf_enveloped(var_name)
+        fig = plot_pdf_enveloped(var_name, is_legend)
         fig.savefig(f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/{var_name}_pdf_global.png", dpi=300)
         all_figs.append(fig)
 
@@ -246,11 +249,12 @@ def main():
         fig_i = all_figs[i]
         axs[i].imshow(fig_i.canvas.buffer_rgba())
         axs[i].axis('off')
-        axs[i].set_title(f"{var_name} PDF Comparison")
+        # axs[i].set_title(f"{var_name} PDF Comparison")
     # Delete the last empty subplot if the number of variables is odd
     if len(ace2_vars) % 2 != 0:
         fig.delaxes(axs[-1])
-    plt.tight_layout()
+    # plt.tight_layout()
+    plt.subplots_adjust(wspace=0.02, hspace=0.02, left=0.02, right=0.98, top=0.98, bottom=0.02)
     plt.savefig(f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/all_vars_pdf_global.png", dpi=300)
 
     #---
@@ -267,6 +271,62 @@ def main():
     # PDF Comparison in storm track regions of the North ATlatnic (see CWD regions where ACE2 overestimates storm days)
     #---
     #TODO
+
+    #---
+    # Bring all images into one figure
+    #---
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from PIL import Image
+
+    png_files = [
+    "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/tasmax_pdf_global.png",
+    "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/tasmin_pdf_global.png",
+    "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/sfcWind_max_pdf_global.png",
+    "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/sfcWind_mean_pdf_global.png",
+    "/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/pr_pdf_global.png",
+    ]
+
+    with Image.open(png_files[0]) as sample_img:
+        img_w, img_h = sample_img.size
+
+    nrows, ncols = 3, 2
+    scale = 4
+    fig_width = scale * ncols
+    fig_height = scale * nrows * (img_h / img_w)
+
+    fig, axs = plt.subplots(nrows, ncols, figsize=(fig_width, fig_height))
+    axs = axs.flatten()
+
+    for i, file_path in enumerate(png_files):
+        img = Image.open(file_path)
+        axs[i].imshow(img)
+        axs[i].axis("off")
+
+    # 1. Dummy-Linien für die Legende erstellen
+    legend_elements = [
+        Line2D([0], [0], color="tab:blue", lw=2.5, label="ACE2"),
+        Line2D([0], [0], color="tab:orange", lw=2.5, label="ERA5"),  # Ggf. "tab:orange" oder Hex-Code anpassen
+    ]
+
+    # 2. Legende rechts neben axs[1] platzieren
+    axs[1].legend(
+        handles=legend_elements,
+        loc="upper left",          # Die obere linke Ecke der Legende...
+        bbox_to_anchor=(0.9, 0.9), # ...wird rechts neben die obere rechte Ecke von axs[1] angeheftet
+        fontsize=10,
+        frameon=True,
+        borderaxespad=0
+    )
+
+    # 3. Den leeren Subplot unten rechts löschen
+    for j in range(len(png_files), len(axs)):
+        fig.delaxes(axs[j])
+
+    plt.subplots_adjust(wspace=0.01, hspace=0.01, left=0, right=1, bottom=0, top=1)
+    plt.savefig("/work/gg0304/g260230/projects/ACE2-Validation/results/figures/04-pdf-comparison/all_vars_pdf_global.png", dpi=300, bbox_inches="tight")
+    plt.close()
 
 if __name__ == "__main__":
     main()

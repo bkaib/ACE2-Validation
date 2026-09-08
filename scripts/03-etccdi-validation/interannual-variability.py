@@ -480,4 +480,140 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+# Quick Vis Global
+def temporal_comparison(domain_name="Global"):
+    """
+    Plot temporal comparison of all ETCCDI indices for a specific domain.
     
+    Creates one figure with subplots for each ETCCDI showing:
+    - ERA5 (solid line)
+    - ACE2 ensemble mean (solid line)
+    - ACE2 ensemble spread (shaded region from min to max)
+    
+    The legend is placed at position [0, 2] (first row, third column).
+    ETR index is not plotted.
+    
+    Parameters
+    ----------
+    domain_name : str or None
+        Domain name from constants.domains, or None for global
+    """
+    domain_str = domain_name if domain_name else "Global"
+    logger.info(f"Plotting temporal comparison for domain: {domain_str}")
+    
+    # Get all ETCCDI indices, excluding ETR
+    all_indices = []
+    for climate_var in constants.etccdi_indices.keys():
+        all_indices.extend(constants.etccdi_indices[climate_var])
+    all_indices = [idx for idx in all_indices if idx != "ETR"]
+    
+    # Create figure with subplots
+    n_indices = len(all_indices)
+    ncols = 3
+    nrows = int(np.ceil(n_indices / ncols))
+    
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(18, 4 * nrows))
+    axes = axes.flatten() if n_indices > 1 else [axes]
+    
+    # Position for legend (first row, third column, index 2 when flattened)
+    legend_ax_idx = 2
+    
+    # Plot each ETCCDI
+    handles = None
+    plot_idx = 0
+    for name in all_indices:
+        # Skip the legend position
+        if plot_idx == legend_ax_idx:
+            plot_idx += 1
+        
+        ax = axes[plot_idx]
+        
+        try:
+            # Load time series data
+            print(f"Loading time series for {name} in domain {domain_str}")
+            era5_folder = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ERA5/temporal_aggregation/{domain_str}/"
+            ace2_folder = f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/temporal_aggregation/{domain_str}/"
+            
+            era5_ts = xr.open_dataset(os.path.join(era5_folder, f"{name}.nc"))
+            ace2_mean_ts = xr.open_dataset(os.path.join(ace2_folder, f"{name}_ensemble_mean.nc"))
+            ace2_all_ts = xr.open_dataset(os.path.join(ace2_folder, f"{name}_all_ensembles.nc"))
+
+            # Drop percentiles dimension if present in ACE2 datasets
+            if "percentiles" in ace2_all_ts.dims:
+                ace2_all_ts = ace2_all_ts.isel(percentiles = 0)
+            if "percentiles" in ace2_mean_ts.dims:
+                ace2_mean_ts = ace2_mean_ts.isel(percentiles = 0)
+
+            # Get variable names (they might differ between ERA5 and ACE2)
+            era5_var = list(era5_ts.data_vars)[0]
+            ace2_var = list(ace2_mean_ts.data_vars)[0]
+            
+            # Extract time and values
+            time_dates = pd.date_range(start="2001-01-01", end="2010-12-31", freq="YS")
+            
+            era5_values = era5_ts[era5_var].values
+            ace2_mean_values = ace2_mean_ts[ace2_var].values
+            
+            # Compute ensemble spread (min and max across all ensemble members)
+            ace2_min = ace2_all_ts[ace2_var].min(dim='ensemble_member').values
+            ace2_max = ace2_all_ts[ace2_var].max(dim='ensemble_member').values
+            
+            # Plot ERA5
+            ax.plot(time_dates, era5_values, color='black', linewidth=2, label='ERA5', marker='o')
+            
+            # Plot ACE2 ensemble mean
+            ax.plot(time_dates, ace2_mean_values, color='red', linewidth=2, label='ACE2 Ensemble Mean', marker='s')
+            
+            # Plot ensemble spread (shaded region)
+            ax.fill_between(time_dates, ace2_min, ace2_max, color='red', alpha=0.3, label='ACE2 Ensemble Spread')
+            
+            # Capture handles and labels from first plot for shared legend
+            if handles is None:
+                handles, labels = ax.get_legend_handles_labels()
+            
+            # Formatting
+            ax.set_xlabel('Year', fontsize=16)
+            unit = constants.etccdi_units.get(name, '')
+            ax.set_ylabel(f"{unit}", fontsize=16)
+            ax.set_title(f"{name}", fontsize=16, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            
+        except FileNotFoundError as e:
+            logger.warning(f"Could not plot {name} for {domain_str}: {e}")
+            ax.text(0.5, 0.5, f"Data not available\nfor {name}", 
+                   ha='center', va='center', transform=ax.transAxes)
+            ax.set_title(f"{name}", fontsize=12)
+        
+        plot_idx += 1
+    
+    # Remove empty subplots
+    total_subplots = nrows * ncols
+    for idx in range(plot_idx + 1, total_subplots):
+        if idx != legend_ax_idx:
+            fig.delaxes(axes[idx])
+    
+    # Add legend at axes[0, 2]
+    if handles is not None:
+        legend_ax = axes[legend_ax_idx]
+        legend_ax.axis('off')
+        legend_ax.legend(
+            handles, 
+            labels, 
+            loc='upper center', 
+            fontsize=18
+        )
+    
+    # Overall title
+    # fig.suptitle(f"Interannual variability of ETCCDI Indices - {domain_str}", 
+    #             fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout()
+
+    # Save figure in results/figures/tmp
+    output_path = f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/tmp/temporal_comparison_{domain_str.replace(' ', '_')}.png"
+    fig.savefig(output_path, dpi=300, bbox_inches='tight')
+
+
+    return fig
+
+temporal_comparison()

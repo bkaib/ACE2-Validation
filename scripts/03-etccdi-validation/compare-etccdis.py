@@ -166,13 +166,17 @@ def plot_spatial_comparison():
     figs = []
     for climate_var in constants.etccdi_indices.keys():
         indices = constants.etccdi_indices[climate_var]
+        if "ETR" in indices:
+            indices.remove("ETR")  # Remove ETR from the list of indices to plot, as it is not relevant for this comparison
 
         fig, axes = plt.subplots(
             nrows=len(indices), ncols=3,
             figsize=(21, 3.5 * len(indices)), 
-            subplot_kw={'projection': ccrs.EqualEarth()}
+            subplot_kw={'projection': ccrs.EqualEarth()},
+            layout="constrained",
             )
         plt.subplots_adjust(hspace=0.35, wspace=0.3)
+
         for i, idx in enumerate(indices):
             # Load data and compute bias
             era5_ds = load_era5_etccdi(idx, timeperiod="2001-2010")
@@ -227,11 +231,146 @@ def plot_spatial_comparison():
             axes[i, 2].coastlines()
             axes[i, 2].gridlines(draw_labels=True)
             axes[i, 2].set_title(f"Bias (ACE2 - ERA5) - {idx}")
-        fig.suptitle(f"Comparison of ERA5 and ACE2 Ensemble Mean for {climate_var.capitalize()} Indices", fontsize=16)
+        # fig.suptitle(f"Comparison of ERA5 and ACE2 Ensemble Mean for {climate_var.capitalize()} Indices", fontsize=16)
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         figs.append(fig)
     return figs
 
+def plot_spatial_comparison_v01():
+    # Constants
+    cbar_range = {
+        # Temperature Indices
+        "ETR": (0, 80),
+        "TXx": (260, 310), # Kelvin
+        "TNn": (230, 290), # Kelvin
+        "TX90p": (40, 52),
+        "TN10p": (40, 52),
+        "WSDI": (0, 30),
+        # Precipitation Indices
+        "Rx1day": (0, 100), 
+        "R10": (0, 30),
+        "CWD": (0, 50), 
+        # Wind indices
+        "FXx": (0, 30),
+        "FG95p": (20, 30),
+        "WSD": (0, 5), 
+    }
+    cbar_range_bias = {
+        "ETR": (-8, 8),
+        "TXx": (-8, 8),
+        "TNn": (-8, 8),
+        "TX90p": (-5, 5),
+        "TN10p": (-8, 8),
+        "WSDI": (-10, 10),
+        "Rx1day": (-20, 20),    
+        "R10": (-200, 200),
+        "CWD": (-15, 15),
+        "FXx": (-5, 5),
+        "FG95p": (-5, 5),
+        "WSD": (-4, 4),
+    }
+    levels = 20
+    figs = []
+    for j, climate_var in enumerate(constants.etccdi_indices.keys()):
+        indices = constants.etccdi_indices[climate_var]
+        if "ETR" in indices:
+            indices.remove("ETR")  
+
+        # 1D-Axes Absicherung, falls len(indices) == 1
+        n_rows = len(indices)
+        fig, axes = plt.subplots(
+            nrows=n_rows, ncols=3,
+            figsize=(21, 3.8 * n_rows), 
+            subplot_kw={'projection': ccrs.EqualEarth()},
+        )
+        
+        # Sicherstellen, dass axes immer 2D ist (n_rows, 3)
+        if n_rows == 1:
+            axes = np.expand_dims(axes, axis=0)
+
+        for i, idx in enumerate(indices):
+            # Load data and compute bias
+            era5_ds = load_era5_etccdi(idx, timeperiod="2001-2010")
+            ace2_ensemble_mean = xr.open_dataset(f"/work/gg0304/g260230/projects/ACE2-Validation/data/processed/ETCCDI/ACE2/ensemble_mean/{idx}_ensemble_mean.nc")
+            
+            era5_var = list(era5_ds.data_vars.keys())[0]
+            ace2_var = list(ace2_ensemble_mean.data_vars.keys())[0]
+
+            era5_temporal_mean = era5_ds[era5_var].mean(dim="time")
+            ace2_temporal_mean = ace2_ensemble_mean[ace2_var].mean(dim="time")
+            bias = ace2_temporal_mean - era5_temporal_mean
+
+            cmap = constants.etccdi_cmaps.get(idx, "coolwarm")
+            cmap_bias = "RdBu_r"
+            unit = constants.etccdi_units.get(idx, "")
+            
+            vmin_data, vmax_data = cbar_range.get(idx, (None, None))
+            vmin_bias, vmax_bias = cbar_range_bias.get(idx, (None, None))
+            
+            # --- 1. ERA5 (Spalte 0) ---
+            im_shared = era5_temporal_mean.plot(
+                ax=axes[i, 0], transform=ccrs.PlateCarree(), 
+                # levels=levels,
+                cmap=cmap, add_colorbar=False,
+                vmin=vmin_data, vmax=vmax_data,
+                add_labels=False,
+            )
+            axes[i, 0].coastlines()
+            axes[i, 0].gridlines(draw_labels=True)
+            # axes[i, 0].set_title(f"ERA5 - {idx}")
+            axes[i, 0].text(-0.15, 0.5, f"{idx}", transform=axes[i, 0].transAxes, 
+                            fontsize=20, va='center', ha='right', rotation='horizontal')
+            
+            # --- 2. ACE2 Ensemble Mean (Spalte 1) ---
+            ace2_temporal_mean.plot(
+                ax=axes[i, 1], transform=ccrs.PlateCarree(), 
+                # levels=levels,
+                cmap=cmap, add_colorbar=False,
+                vmin=vmin_data, vmax=vmax_data,
+                add_labels=False,
+            )
+            axes[i, 1].coastlines()
+            axes[i, 1].gridlines(draw_labels=True)
+            # axes[i, 1].set_title(f"ACE2 Ensemble Mean - {idx}")
+
+            # GEMEINSAME COLORBAR FÜR SPALTE 0 & 1 (Rechts neben Spalte 1)
+            pos1 = axes[i, 1].get_position()
+            # [left, bottom, width, height]
+            cax_shared = fig.add_axes([pos1.x1 - 0.015, pos1.y0, 0.012, pos1.height])
+            fig.colorbar(im_shared, cax=cax_shared, label=f"{unit}",)
+
+            # --- 3. Bias (Spalte 2) ---
+            im_bias = bias.plot(
+                ax=axes[i, 2], transform=ccrs.PlateCarree(), 
+                cmap=cmap_bias, add_colorbar=False,
+                vmin=vmin_bias, vmax=vmax_bias,
+            )
+            axes[i, 2].coastlines()
+            axes[i, 2].gridlines(draw_labels=True)
+            axes[i, 2].set_title(f"Bias (ACE2 - ERA5) - {idx}")
+
+            # SEPARATE COLORBAR FÜR BIAS (Rechts neben Spalte 2)
+            pos2 = axes[i, 2].get_position()
+            cax_bias = fig.add_axes([pos2.x1 + 0.008, pos2.y0, 0.012, pos2.height])
+            fig.colorbar(im_bias, cax=cax_bias, label=f"{unit}",)
+            # if i > 0:  # Limit to first 7 indices for demonstration
+            #     break  
+
+        # 1. Titel setzen (mit etwas Abstand pad=12 nach unten)
+        axes[0, 0].set_title("ERA5", fontsize=20, pad=12)
+        axes[0, 1].set_title("ACE2 Ensemble Mean", fontsize=20, pad=12)
+        axes[0, 2].set_title("Bias (ACE2 - ERA5)", fontsize=20, pad=12)
+
+        # 2. Manuelles Layout anwenden (KEIN plt.tight_layout() danach!)
+        plt.subplots_adjust(left=0.08, right=0.88, wspace=0.35, hspace=0.25)
+
+        # 3. Speichern (bbox_inches='tight' sorgt dafür, dass nichts abgeschnitten wird)
+        fig.savefig(
+            f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/03-etccdi-validation/spatial_comparison_{j}.png", 
+            dpi=300, 
+            bbox_inches="tight"
+        )
+        plt.close(fig)  # Speicher freigeben
 #%% Wrapper
 def compute_ace2_ensemble_mean():
     """Computes ensemble mean of ACE2 simulations for all ETCCDI indices in parallel using Dask."""
@@ -246,7 +385,7 @@ def main():
     # compute_ace2_ensemble_mean()
 
     # # Spatial Comparison of ERA5, ACE2 and Bias
-    figs = plot_spatial_comparison()
+    figs = plot_spatial_comparison_v01()
     for i, fig in enumerate(figs):
         fig.savefig(f"/work/gg0304/g260230/projects/ACE2-Validation/results/figures/03-etccdi-validation/spatial_comparison_{i}.png", dpi=300)
         plt.close(fig)
