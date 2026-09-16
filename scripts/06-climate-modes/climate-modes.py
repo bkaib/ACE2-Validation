@@ -595,7 +595,7 @@ def modes_and_teleconnections(
     vmin = min(era5_loading.min().values, ace2_loading.min().values)
     vmax = max(era5_loading.max().values, ace2_loading.max().values)
     vlim = max(abs(vmin), abs(vmax))
-
+    vlim = 4
     # Compute spatial correlation
     era5_flat = era5_loading.values.flatten()
     ace2_flat = ace2_loading.values.flatten()
@@ -621,7 +621,7 @@ def modes_and_teleconnections(
     gl0 = ax0.gridlines(draw_labels=True)
     gl0.top_labels = False
     gl0.right_labels = False
-    ax0.set_title(f"ERA5 | PC{mode} ({era5_explained_variance_ratio:.2f}%)", pad=20)
+    ax0.set_title(f"(a) ERA5 ({era5_explained_variance_ratio:.2f}%)", pad=20, fontsize=20)
 
     # ACE2 loading
     im_loading = ace2_loading.plot.contourf(
@@ -637,21 +637,23 @@ def modes_and_teleconnections(
     gl1 = ax1.gridlines(draw_labels=True)
     gl1.top_labels = False
     gl1.right_labels = False
-    ax1.set_title(f"ACE2 | PC{mode} ({ace2_explained_variance_ratio:.2f}%) | Spatial Corr: {spatial_corr:.3f}", pad=20)
+    ax1.set_title(f"(b) ACE2 ({ace2_explained_variance_ratio:.2f}%) | Spatial Corr: {spatial_corr:.3f}", pad=20, fontsize=20)
 
     # PC scores time series
     ace2_pcs.plot(ax=ax2, label="ACE2", linewidth=1.5)
     era5_pcs.plot(ax=ax2, label="ERA5", linewidth=1.5)
-    ax2.set_xlabel("Seasons (DJF)")
-    ax2.set_ylabel(f"PC{mode} (normalized)")
-    ax2.set_title(f"PC-Scores | Temporal Corr: {temporal_corr:.3f}", pad=10)
+    ax2.set_xlabel("Seasons (DJF)", fontsize=16)
+    ax2.set_ylabel(f"PC{mode} (normalized)", fontsize=16)
+    ax2.set_title(f"(c) Scores | Temporal Corr: {temporal_corr:.3f}", pad=10, fontsize=20)
     ax2.legend(loc='upper right')
     ax2.grid(True, alpha=0.3)
 
     # Add shared colorbar for loadings
     cbar_ax_top = fig.add_axes(cbar_ax_kwargs["cbar_ax_top"])  
     cbar_top = plt.colorbar(im_loading, cax=cbar_ax_top, orientation='horizontal')
-    cbar_top.set_label('Pressure Loading (hPa)', fontsize=10)
+    cbar_top.set_label('hPa', fontsize=16)
+    cbar_top.set_ticks([-vlim, -vlim/2, 0, vlim/2, vlim])
+    cbar_top.ax.tick_params(labelsize=16)
 
     # BOTTOM ROW: Plot Teleconnections
     
@@ -669,7 +671,7 @@ def modes_and_teleconnections(
     gl3 = ax3.gridlines(draw_labels=True)
     gl3.top_labels = False
     gl3.right_labels = False
-    ax3.set_title("Teleconnection: Precipitation", pad=20)
+    ax3.set_title("(d) Precipitation", pad=20, fontsize=20)
 
     # Teleconnection for TMP2m
     corr_vars["TMP2m"].plot.contourf(
@@ -685,7 +687,7 @@ def modes_and_teleconnections(
     gl4 = ax4.gridlines(draw_labels=True)
     gl4.top_labels = False
     gl4.right_labels = False
-    ax4.set_title("Teleconnection: 2m Temperature", pad=20)
+    ax4.set_title("(e) 2m-air temperature", pad=20, fontsize=20)
 
     # Teleconnection for WINDSPEED
     corr_vars["WINDSPEED"].plot.contourf(
@@ -701,15 +703,17 @@ def modes_and_teleconnections(
     gl5 = ax5.gridlines(draw_labels=True)
     gl5.top_labels = False
     gl5.right_labels = False
-    ax5.set_title("Teleconnection: Wind Speed", pad=20)
+    ax5.set_title("(f) 10 m wind speed", pad=20, fontsize=20)
 
     # Add shared colorbar for teleconnections
     cbar_ax_bottom = fig.add_axes([0.125, 0.08, 0.775, 0.015])  # [left, bottom, width, height]
     cbar_bottom = plt.colorbar(im_precip, cax=cbar_ax_bottom, orientation='horizontal')
-    cbar_bottom.set_label('Correlation Coefficient', fontsize=10)
+    cbar_bottom.set_label("Pearson Correlation", fontsize=16)
+    cbar_bottom.set_ticks([-1, -0.5, 0, 0.5, 1])
+    cbar_bottom.ax.tick_params(labelsize=16)
 
     # Overall title
-    fig.suptitle(f"Climate Mode: {climate_mode} | PC{mode}", fontsize=16, y=0.98)
+    # fig.suptitle(f"Climate Mode: {climate_mode} | PC{mode}", fontsize=16, y=0.98)
 
     plt.tight_layout(rect=[0, 0.10, 1, 0.96])
 
@@ -718,103 +722,6 @@ def modes_and_teleconnections(
         fig.savefig(f"{output_dir}/{file}_{climate_mode}_mode{mode}.png", dpi=300, bbox_inches='tight')
 
     return fig
-
-
-
-#%% Main
-def main():
-    # Constants:
-    var_names = ["PRATEsfc", "PRESsfc", "TMP2m", "WINDSPEED",]
-    pna_mode = 1
-    nao_mode = 1
-
-    #---
-    # Compute NAO Index based on DJF seasonal means
-    #---
-    ace2_pressfc = load_ace2_1940_2022("PRESsfc")["PRESsfc"]
-    era5_pressfc = xr.open_dataset("/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/PRESsfc_day_1941-2022.nc")["sp"]
-
-    ## Convert from Pa to hPa
-    ace2_pressfc = ace2_pressfc / 100.0
-    era5_pressfc = era5_pressfc / 100.0
-
-    ## Compute NAO Index
-    ace2_nao_metrics = compute_nao_index(ace2_pressfc)
-    era5_nao_metrics = compute_nao_index(era5_pressfc)
-
-    ## Create a figure to compare the modes of ACE2 and ERA5
-    # compare_climate_mode_nao(ace2_nao_metrics, era5_nao_metrics, mode=1, file="nao-index-comparison")
-
-    #---
-    # PNA Index
-    #---
-    ace2_pna_metrics = compute_pna_index(ace2_pressfc)
-    era5_pna_metrics = compute_pna_index(era5_pressfc)
-
-    ## Create a figure to compare the modes of ACE2 and ERA5
-    # compare_climate_mode_pna(ace2_pna_metrics, era5_pna_metrics, mode=1, file="pna-index-comparison")
-
-    #---
-    # Teleconnections
-    #---
-
-    # Load the data of the variables of interest
-    ace2_precip = load_ace2_1940_2022("PRATEsfc")["PRATEsfc"]
-    ace2_tmp2m = load_ace2_1940_2022("TMP2m")["TMP2m"]  
-    ace2_windspeed = load_ace2_1940_2022("WINDSPEED_10m")["WINDSPEED_10m"]
-
-    # Preprocess variables to seasonal means
-    ace2_tmp2m_seasonal = preprocess_variable_for_teleconnection(ace2_tmp2m)
-    ace2_precip_seasonal = preprocess_variable_for_teleconnection(ace2_precip)
-    ace2_windspeed_seasonal = preprocess_variable_for_teleconnection(ace2_windspeed)
-
-    # Get NAO and PNA PC score
-    ace2_nao_score = ace2_nao_metrics["principal_components"].sel(mode=nao_mode)
-    ace2_pna_score = ace2_pna_metrics["principal_components"].sel(mode=pna_mode)
-
-    # Compute teleconnections to NAO and PNA
-    corr_tmp2m_nao = compute_teleconnection(ace2_nao_score, ace2_tmp2m_seasonal)
-    corr_precip_nao = compute_teleconnection(ace2_nao_score, ace2_precip_seasonal)
-    corr_windspeed_nao = compute_teleconnection(ace2_nao_score, ace2_windspeed_seasonal)
-    nao_teleconnections = {
-        "TMP2m": corr_tmp2m_nao,
-        "PRATEsfc": corr_precip_nao,
-        "WINDSPEED": corr_windspeed_nao
-    }
-
-    corr_tmp2m_pna = compute_teleconnection(ace2_pna_score, ace2_tmp2m_seasonal)
-    corr_precip_pna = compute_teleconnection(ace2_pna_score, ace2_precip_seasonal)
-    corr_windspeed_pna = compute_teleconnection(ace2_pna_score, ace2_windspeed_seasonal)
-    pna_teleconnections = {
-        "TMP2m": corr_tmp2m_pna,
-        "PRATEsfc": corr_precip_pna,
-        "WINDSPEED": corr_windspeed_pna
-    }
-
-    # Visualize teleconnections
-    # modes_and_teleconnections(
-    #     ace2_pca_metrics=ace2_nao_metrics,
-    #     era5_pca_metrics=era5_nao_metrics,
-    #     corr_vars=nao_teleconnections,
-    #     mode=nao_mode,
-    #     climate_mode="NAO",
-    #     file="nao_modes_and_teleconnections"
-    # )
-    modes_and_teleconnections(
-        ace2_pca_metrics=ace2_pna_metrics,
-        era5_pca_metrics=era5_pna_metrics,
-        corr_vars=pna_teleconnections,
-        mode=pna_mode,
-        climate_mode="PNA",
-        file="pna_modes_and_teleconnections",
-        cbar_ax_kwargs={"cbar_ax_top": [0.125, 0.55, 0.35, 0.015]}, # [left, bottom, width, height]
-        loading_projection=ccrs.EqualEarth(central_longitude=180),
-    )
-
-#%% Run
-if __name__ == "__main__":
-    main()
-
 
 def nao_pna_relationship():
     """Computes the NAO and PNA indices based on monthly anomalies in 1941-2022. 
@@ -963,4 +870,110 @@ def nao_pna_relationship():
     ax.set_ylabel("Running Correlation (21y window)")
     ax.set_title("Running Correlation between NAO and PNA Indices")
     ax.legend(loc='upper right')
+
+
+
+#%% Main
+def main():
+    # Constants:
+    var_names = ["PRATEsfc", "PRESsfc", "TMP2m", "WINDSPEED",]
+    pna_mode = 1
+    nao_mode = 1
+
+    #---
+    # Compute NAO Index based on DJF seasonal means
+    #---
+    logger.info("Loading ACE2 and ERA5 surface pressure data")
+    ace2_pressfc = load_ace2_1940_2022("PRESsfc")["PRESsfc"]
+    era5_pressfc = xr.open_dataset("/work/gg0304/g260230/projects/ACE2-Validation/data/raw/ERA5/1D/PRESsfc_day_1941-2022.nc")["sp"]
+
+    ## Convert from Pa to hPa
+    ace2_pressfc = ace2_pressfc / 100.0
+    era5_pressfc = era5_pressfc / 100.0
+
+    ## Compute NAO Index
+    logger.info("Computing NAO index for ACE2 and ERA5")
+    ace2_nao_metrics = compute_nao_index(ace2_pressfc)
+    era5_nao_metrics = compute_nao_index(era5_pressfc)
+
+    ## Create a figure to compare the modes of ACE2 and ERA5
+    # compare_climate_mode_nao(ace2_nao_metrics, era5_nao_metrics, mode=1, file="nao-index-comparison")
+
+    #---
+    # PNA Index
+    #---
+    logger.info("Computing PNA index for ACE2 and ERA5")
+    ace2_pna_metrics = compute_pna_index(ace2_pressfc)
+    era5_pna_metrics = compute_pna_index(era5_pressfc)
+
+    ## Create a figure to compare the modes of ACE2 and ERA5
+    # compare_climate_mode_pna(ace2_pna_metrics, era5_pna_metrics, mode=1, file="pna-index-comparison")
+
+    #---
+    # Teleconnections
+    #---
+
+    # Load the data of the variables of interest
+    logger.info("Loading ACE2 precipitation, temperature, and wind speed data")
+    ace2_precip = load_ace2_1940_2022("PRATEsfc")["PRATEsfc"]
+    ace2_tmp2m = load_ace2_1940_2022("TMP2m")["TMP2m"]  
+    ace2_windspeed = load_ace2_1940_2022("WINDSPEED_10m")["WINDSPEED_10m"]
+
+    # Preprocess variables to seasonal means
+    logger.info("Preprocessing ACE2 variables to seasonal means")
+    ace2_tmp2m_seasonal = preprocess_variable_for_teleconnection(ace2_tmp2m)
+    ace2_precip_seasonal = preprocess_variable_for_teleconnection(ace2_precip)
+    ace2_windspeed_seasonal = preprocess_variable_for_teleconnection(ace2_windspeed)
+
+    # Get NAO and PNA PC score
+    ace2_nao_score = ace2_nao_metrics["principal_components"].sel(mode=nao_mode)
+    ace2_pna_score = ace2_pna_metrics["principal_components"].sel(mode=pna_mode)
+
+    logger.info("Computing teleconnections to NAO and PNA")
+    # Compute teleconnections to NAO and PNA
+    corr_tmp2m_nao = compute_teleconnection(ace2_nao_score, ace2_tmp2m_seasonal)
+    corr_precip_nao = compute_teleconnection(ace2_nao_score, ace2_precip_seasonal)
+    corr_windspeed_nao = compute_teleconnection(ace2_nao_score, ace2_windspeed_seasonal)
+    nao_teleconnections = {
+        "TMP2m": corr_tmp2m_nao,
+        "PRATEsfc": corr_precip_nao,
+        "WINDSPEED": corr_windspeed_nao
+    }
+
+    corr_tmp2m_pna = compute_teleconnection(ace2_pna_score, ace2_tmp2m_seasonal)
+    corr_precip_pna = compute_teleconnection(ace2_pna_score, ace2_precip_seasonal)
+    corr_windspeed_pna = compute_teleconnection(ace2_pna_score, ace2_windspeed_seasonal)
+    pna_teleconnections = {
+        "TMP2m": corr_tmp2m_pna,
+        "PRATEsfc": corr_precip_pna,
+        "WINDSPEED": corr_windspeed_pna
+    }
+
+    # Visualize teleconnections
+    logger.info("Visualizing teleconnections for NAO and PNA")
+    fig = modes_and_teleconnections(
+        ace2_pca_metrics=ace2_nao_metrics,
+        era5_pca_metrics=era5_nao_metrics,
+        corr_vars=nao_teleconnections,
+        mode=nao_mode,
+        climate_mode="NAO",
+        file="nao_modes_and_teleconnections",
+        cbar_ax_kwargs={"cbar_ax_top": [0.125, 0.55, 0.35, 0.015]}, # [left, bottom, width, height]
+        loading_projection=ccrs.EqualEarth(),
+    )
+    modes_and_teleconnections(
+        ace2_pca_metrics=ace2_pna_metrics,
+        era5_pca_metrics=era5_pna_metrics,
+        corr_vars=pna_teleconnections,
+        mode=pna_mode,
+        climate_mode="PNA",
+        file="pna_modes_and_teleconnections",
+        cbar_ax_kwargs={"cbar_ax_top": [0.125, 0.55, 0.35, 0.015]}, # [left, bottom, width, height]
+        loading_projection=ccrs.EqualEarth(central_longitude=180),
+    )
+
+#%% Run
+if __name__ == "__main__":
+    main()
+
 
